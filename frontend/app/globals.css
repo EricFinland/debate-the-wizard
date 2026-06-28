@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+ * Performance: drop expensive GPU effects globally for a fast, simple UI.
+ * backdrop-filter (glass blur) was on ~every panel and is the biggest cost on
+ * continuous repaints. Killing it keeps the translucent panel colors but stops
+ * the per-frame backdrop recompositing.
+ * ------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 :root {
   --font-display: "Cinzel", Georgia, serif;
   --font-sans: ui-sans-serif, system-ui, sans-serif;

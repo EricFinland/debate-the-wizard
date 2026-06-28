@@ -44,8 +44,6 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,57,196,0.28),_transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(180,140,40,0.12),_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_30%,_rgba(56,189,248,0.07),_transparent_40%)]" />
-        <StarField />
       </div>
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center px-5 py-10 sm:py-12">
@@ -327,40 +325,6 @@ function SpinnerRune() {
     <span className="inline-block text-xl leading-none animate-spin" aria-hidden>
       ✶
     </span>
-  )
-}
-
-function StarField() {
-  // deterministic scatter so SSR and client markup match (no hydration drift)
-  const stars = Array.from({ length: 36 }, (_, i) => {
-    const seed = (i * 2654435761) >>> 0
-    const left = (seed % 1000) / 10
-    const top = ((seed >> 10) % 1000) / 10
-    const size = ((seed >> 5) % 3) + 1
-    const delay = ((seed >> 7) % 40) / 10
-    const dur = 2.5 + ((seed >> 3) % 30) / 10
-    return { left, top, size, delay, dur, id: i }
-  })
-  // Twinkle is a pure-CSS keyframe loop (`animate-sparkle`) per the ANIMATION
-  // RULE — per-star timing is carried via inline animationDuration/Delay so the
-  // scatter still feels organic without any framer-motion infinite loops.
-  return (
-    <div className="absolute inset-0">
-      {stars.map((s) => (
-        <span
-          key={s.id}
-          className="absolute rounded-full bg-violet-200 animate-sparkle"
-          style={{
-            left: `${s.left}%`,
-            top: `${s.top}%`,
-            width: s.size,
-            height: s.size,
-            animationDuration: `${s.dur}s`,
-            animationDelay: `${s.delay}s`,
-          }}
-        />
-      ))}
-    </div>
   )
 }
 
