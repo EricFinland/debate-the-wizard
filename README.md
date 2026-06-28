@@ -43,7 +43,8 @@ too:
 Backend skeleton (build-order step 1):
 
 - [x] Database schema — `migrations/20260628120000_init.sql`
-- [x] `/judge-claim` edge function — You.com search + Claude judge, strict JSON, graceful fallbacks
+- [x] `/judge-claim` edge function — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
+- [x] Multi-dimension scorecard per claim (factual accuracy / logic / evidence / persuasiveness) + fallacy detection, all in the single judge call
 - [x] curl smoke test — `scripts/test-judge.sh`
 - [ ] `/wizard-turn`
 - [ ] Realtime channel + score broadcast
@@ -59,6 +60,27 @@ scripts/test-judge.sh       curl smoke test for the deployed function
 SETUP.md                    Init -> deploy -> test, step by step
 .env.example                Secrets the function expects
 ```
+
+## `judge-claim` response contract
+
+`POST /functions/judge-claim` with `{ "argument": "...", "topic": "..." }` returns:
+
+```json
+{
+  "key_claim": "the single testable claim the Judge extracted",
+  "verdict": "supported | unsupported | misleading",
+  "rationale": "<= 20 words",
+  "points": 10,
+  "scores": { "factual_accuracy": 8, "logic": 7, "evidence": 9, "persuasiveness": 6 },
+  "fallacies": [],
+  "citations": [{ "title": "...", "url": "...", "snippet": "..." }],
+  "citation_index": 0
+}
+```
+
+`points` (the game score) comes from `verdict`: supported +10, unsupported 0, misleading −5.
+`scores` and `fallacies` drive the on-screen scorecard and tiebreaks. `citation_index`
+points at the snippet the Judge relied on (or `null`).
 
 ## Getting started
 

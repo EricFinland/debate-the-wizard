@@ -45,13 +45,31 @@ interface Citation {
   url: string;
   snippet: string;
 }
+/** Per-claim scorecard (0-10 each) — multi-dimension judging in ONE call. */
+interface Scores {
+  factual_accuracy: number;
+  logic: number;
+  evidence: number;
+  persuasiveness: number;
+}
 interface JudgeResult {
   key_claim: string;
   verdict: Verdict;
   rationale: string;
   points: number;
+  scores: Scores;
+  fallacies: string[]; // e.g. ["straw man", "ad hominem"]; [] if none
   citations: Citation[];
   citation_index: number | null;
+}
+
+const ZERO_SCORES: Scores = { factual_accuracy: 0, logic: 0, evidence: 0, persuasiveness: 0 };
+
+/** Clamp an LLM-provided dimension score into 0-10. */
+function clampScore(n: unknown): number {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(10, v));
 }
 
 // ---------- helpers ----------
@@ -148,18 +166,30 @@ async function extractSearchQuery(argument: string, topic: string): Promise<stri
   }
 }
 
-/** Step 2: the Judge — extract the key claim + rule against the snippets. */
-async function judge(argument: string, citations: Citation[]): Promise<{ key_claim: string; verdict: Verdict; rationale: string; citation_index: number | null }> {
+/** Step 2: the Judge — extract the key claim, rule, and score every dimension in ONE call. */
+async function judge(
+  argument: string,
+  citations: Citation[],
+): Promise<{ key_claim: string; verdict: Verdict; rationale: string; scores: Scores; fallacies: string[]; citation_index: number | null }> {
   const snippetList = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
   const sys =
-    "You are a debate fact-checker. Given an ARGUMENT and a list of SEARCH SNIPPETS, do two things:\n" +
+    "You are a debate fact-checker and scorer. Given an ARGUMENT and a list of SEARCH SNIPPETS:\n" +
     "1. Extract the single most important factual claim from the argument.\n" +
-    "2. Rule on whether the snippets support it.\n" +
-    'Return ONLY JSON: {"key_claim":"...","verdict":"supported"|"unsupported"|"misleading","rationale":"<= 20 words","citation_index": <int or null>}\n' +
-    "- supported: a snippet clearly backs the claim.\n" +
-    "- unsupported: no snippet addresses it.\n" +
-    "- misleading: a snippet contradicts or undercuts it.\n" +
-    "citation_index is the index of the snippet you relied on, or null.";
+    "2. Rule on whether the snippets support that claim.\n" +
+    "3. Score the argument on four dimensions (0-10 each).\n" +
+    "4. Name any logical fallacies present.\n" +
+    "Return ONLY JSON in exactly this shape:\n" +
+    "{\n" +
+    '  "key_claim": "...",\n' +
+    '  "verdict": "supported" | "unsupported" | "misleading",\n' +
+    '  "rationale": "<= 20 words",\n' +
+    '  "citation_index": <int or null>,\n' +
+    '  "scores": { "factual_accuracy": 0-10, "logic": 0-10, "evidence": 0-10, "persuasiveness": 0-10 },\n' +
+    '  "fallacies": ["..."]\n' +
+    "}\n" +
+    "- supported: a snippet clearly backs the claim. - unsupported: no snippet addresses it. - misleading: a snippet contradicts or undercuts it.\n" +
+    "- factual_accuracy: how well the claim matches the snippets. evidence: strength/relevance of the snippets cited. logic: soundness of reasoning. persuasiveness: rhetorical force.\n" +
+    "- citation_index is the index of the snippet you relied on, or null. fallacies is [] if none.";
   const user = `ARGUMENT:\n${argument}\n\nSEARCH SNIPPETS:\n${snippetList || "(none found)"}`;
 
   const raw = await chat(JUDGE_MODEL, [
@@ -167,9 +197,17 @@ async function judge(argument: string, citations: Citation[]): Promise<{ key_cla
     { role: "user", content: user },
   ]);
 
-  const parsed = parseJson<{ key_claim: string; verdict: string; rationale: string; citation_index: number | null }>(raw);
+  const parsed = parseJson<{
+    key_claim: string;
+    verdict: string;
+    rationale: string;
+    citation_index: number | null;
+    scores?: Partial<Scores>;
+    fallacies?: string[];
+  }>(raw);
+
   if (!parsed) {
-    return { key_claim: argument.slice(0, 200), verdict: "unsupported", rationale: "Judge response could not be parsed.", citation_index: null };
+    return { key_claim: argument.slice(0, 200), verdict: "unsupported", rationale: "Judge response could not be parsed.", scores: ZERO_SCORES, fallacies: [], citation_index: null };
   }
   const verdict: Verdict = (["supported", "unsupported", "misleading"] as const).includes(parsed.verdict as Verdict)
     ? (parsed.verdict as Verdict)
@@ -177,10 +215,19 @@ async function judge(argument: string, citations: Citation[]): Promise<{ key_cla
   const ci = typeof parsed.citation_index === "number" && parsed.citation_index >= 0 && parsed.citation_index < citations.length
     ? parsed.citation_index
     : null;
+  const scores: Scores = {
+    factual_accuracy: clampScore(parsed.scores?.factual_accuracy),
+    logic: clampScore(parsed.scores?.logic),
+    evidence: clampScore(parsed.scores?.evidence),
+    persuasiveness: clampScore(parsed.scores?.persuasiveness),
+  };
+  const fallacies = Array.isArray(parsed.fallacies) ? parsed.fallacies.filter((f) => typeof f === "string" && f.trim()).slice(0, 5) : [];
   return {
     key_claim: parsed.key_claim || argument.slice(0, 200),
     verdict,
     rationale: parsed.rationale || "",
+    scores,
+    fallacies,
     citation_index: ci,
   };
 }
@@ -212,6 +259,8 @@ export default async function (req: Request): Promise<Response> {
         verdict: "unsupported",
         rationale: "No sources found to support this claim.",
         points: SCORE.unsupported,
+        scores: ZERO_SCORES,
+        fallacies: [],
         citations: [],
         citation_index: null,
       };
@@ -223,7 +272,9 @@ export default async function (req: Request): Promise<Response> {
       key_claim: ruling.key_claim,
       verdict: ruling.verdict,
       rationale: ruling.rationale,
-      points: SCORE[ruling.verdict],
+      points: SCORE[ruling.verdict], // base game score comes from the verdict; the scorecard is for display/tiebreak
+      scores: ruling.scores,
+      fallacies: ruling.fallacies,
       citations,
       citation_index: ruling.citation_index,
     };

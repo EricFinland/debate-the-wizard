@@ -28,6 +28,8 @@ create table if not exists public.claims (
   verdict    text check (verdict in ('supported', 'unsupported', 'misleading')),
   rationale  text,                                       -- Judge's one-liner
   points     int  not null default 0,
+  scores     jsonb,                                      -- {factual_accuracy, logic, evidence, persuasiveness} 0-10 each
+  fallacies  jsonb not null default '[]'::jsonb,         -- ["straw man", ...]
   created_at timestamptz not null default now()
 );
 
