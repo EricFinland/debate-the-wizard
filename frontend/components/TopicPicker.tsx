@@ -10,6 +10,10 @@ type RoundsOption = 3 | 5 | 7
 export interface TopicPickerProps {
   onStart: (input: { topic_id?: string; topic?: string; rounds_total: number }) => void
   loading?: boolean
+  /** Pass the current auth user — if null the CTA becomes a sign-in prompt. */
+  user?: { id: string; name?: string | null } | null
+  /** Called when the user clicks "Sign in to Duel". */
+  onSignIn?: () => void
 }
 
 const ROUNDS_OPTIONS: RoundsOption[] = [3, 5, 7]
@@ -21,7 +25,7 @@ const MODIFIER_HINT =
     ? '⌘'
     : 'Ctrl'
 
-export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
+export function TopicPicker({ onStart, loading = false, user, onSignIn }: TopicPickerProps) {
   const [argument, setArgument] = useState('')
   const [rounds, setRounds] = useState<RoundsOption>(5)
   const [inspirationOpen, setInspirationOpen] = useState(false)
@@ -35,7 +39,9 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
   const atLimit = remaining <= 0
   const nearLimit = remaining <= 80
   const valid = trimmed.length >= MIN_ARG_LENGTH && !atLimit
-  const canStart = !loading && valid
+  const isAuthed = !!user
+  // canStart: argument must be valid AND user must be signed in
+  const canStart = !loading && valid && isAuthed
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const next = e.target.value
@@ -355,38 +361,59 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
           transition={{ delay: 0.65, duration: 0.5 }}
           className="mt-12 w-full max-w-md"
         >
-          <motion.button
-            type="button"
-            disabled={!canStart}
-            onClick={handleStart}
-            whileHover={canStart ? { scale: 1.025 } : undefined}
-            whileTap={canStart ? { scale: 0.97 } : undefined}
-            className={cn(
-              'group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 py-5 text-lg font-bold tracking-wide transition-all',
-              canStart
-                ? 'bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 text-white shadow-[0_0_50px_-8px_rgba(168,85,247,0.7)]'
-                : 'cursor-not-allowed bg-white/5 text-zinc-600',
-            )}
-            style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
-          >
-            {/* shimmer sweep */}
-            {canStart && (
-              <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-            )}
-            {loading ? (
-              <>
-                <SpinnerRune />
-                <span>Summoning the arena…</span>
-              </>
-            ) : (
-              <>
-                <span className="text-2xl leading-none" aria-hidden>
-                  ⚔️
-                </span>
-                <span>Begin the Duel</span>
-              </>
-            )}
-          </motion.button>
+          {/* If user is not signed in, replace the duel button with a sign-in prompt */}
+          {!isAuthed ? (
+            <>
+              <motion.button
+                type="button"
+                onClick={onSignIn}
+                whileHover={{ scale: 1.025 }}
+                whileTap={{ scale: 0.97 }}
+                className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 py-5 text-lg font-bold tracking-wide transition-all bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 text-white shadow-[0_0_50px_-8px_rgba(168,85,247,0.7)]"
+                style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
+              >
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                <span className="text-2xl leading-none" aria-hidden>🔐</span>
+                <span>Sign in to Duel</span>
+              </motion.button>
+              <p className="mt-3 text-center text-xs text-zinc-500">
+                A free account is required to track your wins and enter the hall of champions.
+              </p>
+            </>
+          ) : (
+            <motion.button
+              type="button"
+              disabled={!canStart}
+              onClick={handleStart}
+              whileHover={canStart ? { scale: 1.025 } : undefined}
+              whileTap={canStart ? { scale: 0.97 } : undefined}
+              className={cn(
+                'group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 py-5 text-lg font-bold tracking-wide transition-all',
+                canStart
+                  ? 'bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 text-white shadow-[0_0_50px_-8px_rgba(168,85,247,0.7)]'
+                  : 'cursor-not-allowed bg-white/5 text-zinc-600',
+              )}
+              style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
+            >
+              {/* shimmer sweep */}
+              {canStart && (
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+              )}
+              {loading ? (
+                <>
+                  <SpinnerRune />
+                  <span>Summoning the arena…</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl leading-none" aria-hidden>
+                    ⚔️
+                  </span>
+                  <span>Begin the Duel</span>
+                </>
+              )}
+            </motion.button>
+          )}
           <p className="mt-4 text-center text-xs text-zinc-600">
             Citations powered by{' '}
             <span className="font-semibold text-zinc-400">You.com</span> live
