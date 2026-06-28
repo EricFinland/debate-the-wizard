@@ -368,7 +368,7 @@
     background: #232a40;
     padding: 6px 8px 5px;
     font-family: 'GameFont', fantasy;
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.55;
     color: #fff;
     border-bottom: 2px solid #000;
@@ -404,18 +404,13 @@
    max-height is the hard guarantee; -webkit-line-clamp adds the ellipsis
    where the engine honors it. */
 #side-citations .citation-snippet {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    max-height: 24px;
     overflow: hidden;
     background: #1d2333;
-    padding: 6px 8px 7px;
+    padding: 7px 9px 8px;
     font-family: 'GameFont', fantasy;
-    font-size: 8px;
-    line-height: 12px;
-    color: #cdd5e8;
+    font-size: 10px;
+    line-height: 15px;
+    color: #eef2ff;
     word-break: break-word;
     overflow-wrap: anywhere;
 }

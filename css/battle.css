@@ -130,21 +130,21 @@
 /* ENEMY HUD: top-right (same side as the enemy wizard).
    Sits at the very top so the sprite below it stays fully visible. */
 #enemy-hud {
-    bottom: 8px;
-    right: 14px;
-    left: auto;
-    top: auto;
-    z-index: 6; /* below the enemy sprite so it can't obscure it */
+    top: 8px;
+    left: 14px;
+    right: auto;
+    bottom: auto;
+    z-index: 6; /* diagonal from the enemy sprite (top-right) so they never overlap */
 }
 
 /* PLAYER HUD: bottom-left (same side as the player wizard).
    Sits low-left; the taller player sprite renders above it. */
 #player-hud {
-    top: 8px;
-    left: 14px;
-    right: auto;
-    bottom: auto;
-    z-index: 6; /* below the player sprite so it can't obscure it */
+    bottom: 8px;
+    right: 14px;
+    left: auto;
+    top: auto;
+    z-index: 6; /* diagonal from the player sprite (bottom-left) so they never overlap */
 }
 
 .name {

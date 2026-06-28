@@ -7,7 +7,7 @@
     'use strict';
 
     var BASE_W = 400;
-    var BASE_H = 260;
+    var BASE_H = 380;
     var MIN_SCALE = 1.4;
     var MAX_SCALE = 4;
     var GAP = 20;      /* must match #game-container gap */
