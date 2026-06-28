@@ -9,6 +9,7 @@ export type {
   AgentWorkflowInput,
   Citation,
   ClaimResearchResult,
+  Difficulty,
   FactCheckReport,
   FallacyReport,
   LogicQuality,
@@ -32,7 +33,10 @@ export type {
 } from "./types/judge.ts";
 
 export async function runAgentWorkflow(input: AgentWorkflowInput): Promise<AgentWorkflowResult> {
-  const debaterResult = await runDebaterAgent(input);
+  const debaterResult = await runDebaterAgent({
+    user_argument: input.user_argument,
+    difficulty: input.difficulty,
+  });
   const judgeResult = await runJudgeAgent({
     user_argument: input.user_argument,
     ai_rebuttal: debaterResult.ai_rebuttal,

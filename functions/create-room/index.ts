@@ -2,7 +2,7 @@
 // Owned by the orchestration/infra track ("the rest").
 //
 // POST { "topic"?: string, "topic_id"?: string, "rounds_total"?: number,
-//        "difficulty"?: "novice"|"adept"|"archmage", "host_user_id"?: string }
+//        "difficulty"?: "novice"|"adept"|"archmage"|"impossible", "host_user_id"?: string }
 //   - pass topic_id to use a pre-vetted demo topic (see SEED_TOPICS), or
 //   - pass a freeform topic string.
 //   - difficulty defaults to 'adept'; host_user_id is optional.
@@ -62,7 +62,7 @@ export default async function (req: Request): Promise<Response> {
 
   const rounds_total = Math.max(1, Math.min(10, Number(body.rounds_total) || 5));
 
-  const DIFFICULTIES = ["novice", "adept", "archmage"];
+  const DIFFICULTIES = ["novice", "adept", "archmage", "impossible"];
   const difficulty = DIFFICULTIES.includes(String(body.difficulty)) ? String(body.difficulty) : "adept";
   const host_user_id = typeof body.host_user_id === "string" && body.host_user_id.trim() ? body.host_user_id.trim() : null;
 
