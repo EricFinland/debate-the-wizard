@@ -20,6 +20,9 @@ const Registration = (() => {
                 opt.classList.add('selected');
                 selectedColor = opt.dataset.color;
                 error.classList.add('hidden');
+                // single highlight: move the keyboard cursor to the clicked color
+                var opts = Array.prototype.slice.call(picker.querySelectorAll('.color-opt'));
+                if (nav) nav.focus(opts.indexOf(opt));
             });
         });
 
