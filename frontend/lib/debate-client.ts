@@ -1,7 +1,5 @@
-// Self-contained typed client for the Debate the Wizard edge functions.
-// This file embeds both the shared types and the client implementation so the
-// frontend has zero cross-root imports. Source of truth is the backend's
-// client/types.ts + client/index.ts — keep this in sync if those change.
+// Typed client for the Debate the Wizard edge functions.
+// Source of truth for API shapes lives in shared/contracts/debate.ts.
 //
 // Frontend usage:
 //   import { createDebateClient } from "@/lib/debate-client";
@@ -9,152 +7,46 @@
 //   const { room } = await api.createRoom({ topic_id: "nuclear-climate" });
 //   const turn = await api.submitArgument({ room_id: room.id, round_no: 1, argument });
 
-// ---------------------------------------------------------------------------
-// Types — the contract between backend edge functions and the frontend.
-// ---------------------------------------------------------------------------
+import type {
+  CreateRoomResponse,
+  Difficulty,
+  GetRoomResponse,
+  HealthResponse,
+  JudgeResult,
+  LeaderboardResponse,
+  ListRoomsResponse,
+  RecordMatchResponse,
+  TurnResponse,
+} from "../../shared/contracts/debate";
 
-export type Verdict = "supported" | "unsupported" | "misleading";
-export type Side = "A" | "B"; // A = human, B = wizard
-export type Author = "player" | "wizard";
-export type RoomStatus = "lobby" | "active" | "finished";
-export type Difficulty = "novice" | "adept" | "archmage";
-
-export interface Scores {
-  factual_accuracy: number; // 0-10
-  logic: number; // 0-10
-  evidence: number; // 0-10
-  persuasiveness: number; // 0-10
-}
-
-export interface Citation {
-  id?: string;
-  claim_id?: string;
-  title: string | null;
-  url: string | null;
-  snippet: string | null;
-}
-
-export interface Room {
-  id: string;
-  topic: string;
-  status: RoomStatus;
-  rounds_total: number;
-  created_at: string;
-}
-
-export interface Player {
-  id: string;
-  room_id: string;
-  side: Side;
-  score: number;
-}
-
-export interface Claim {
-  id: string;
-  room_id: string;
-  round_no: number;
-  author: Author;
-  argument: string;
-  key_claim: string | null;
-  verdict: Verdict | null;
-  rationale: string | null;
-  points: number;
-  scores: Scores | null;
-  fallacies: string[];
-  created_at: string;
-  citations?: Citation[];
-  /** Wizard-only jab returned by advance-wizard. */
-  taunt?: string | null;
-  /** The web-search query the judge/wizard ran for this turn. */
-  search_query?: string | null;
-}
-
-/** Raw output of the pure judge-claim function. */
-export interface JudgeResult {
-  key_claim: string;
-  verdict: Verdict;
-  rationale: string;
-  points: number;
-  scores: Scores;
-  fallacies: string[];
-  citations: Citation[];
-  citation_index: number | null;
-}
-
-// --- edge function responses ---
-
-export interface CreateRoomResponse {
-  room: Room;
-  players: Player[];
-  topic_meta: Record<string, unknown>;
-}
-
-export interface TurnResponse {
-  claim: Claim;
-  citations: Citation[];
-  score: number;
-  citation_index: number | null;
-  room?: Room; // advance-wizard includes the (possibly finished) room
-  /** The web-search query this turn ran (mirrors claim.search_query). */
-  search_query?: string | null;
-  /** Wizard-only jab (advance-wizard only; mirrors claim.taunt). */
-  taunt?: string | null;
-}
-
-export interface GetRoomResponse {
-  room: Room;
-  players: Player[];
-  scores: { A: number; B: number };
-  claims: Claim[];
-  winner: Side | "tie" | null;
-}
-
-export interface LeaderboardEntry {
-  display_name: string | null;
-  avatar_url: string | null;
-  wins: number;
-  losses: number;
-  total_score: number;
-}
-export interface LeaderboardResponse {
-  leaderboard: LeaderboardEntry[];
-}
-
-/** Lightweight room summary returned by list-rooms. */
-export interface RoomSummary {
-  id: string;
-  topic: string;
-  status: RoomStatus;
-  rounds_total: number;
-  created_at: string;
-}
-export interface ListRoomsResponse {
-  rooms: RoomSummary[];
-}
-
-/** Persistent player profile aggregated across matches. */
-export interface Profile {
-  user_id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  wins: number;
-  losses: number;
-  total_score: number;
-}
-export interface RecordMatchResponse {
-  profile: Profile;
-}
-
-export interface HealthResponse {
-  ok: boolean;
-  service: string;
-  time: string;
-  config: { gateway: boolean; db: boolean; youcom: boolean };
-}
-
-export interface ApiError {
-  error: string;
-}
+export type {
+  ApiError,
+  Author,
+  Citation,
+  Claim,
+  CreateRoomResponse,
+  Difficulty,
+  GetRoomResponse,
+  HealthResponse,
+  JudgeResult,
+  LeaderboardEntry,
+  LeaderboardResponse,
+  LegacyLeaderboardEntry,
+  ListRoomsResponse,
+  Player,
+  Profile,
+  ProfileLeaderboardEntry,
+  RawLeaderboardEntry,
+  RecordMatchResponse,
+  Room,
+  RoomStatus,
+  RoomSummary,
+  Scores,
+  Side,
+  TurnResponse,
+  Verdict,
+  WizardResult,
+} from "../../shared/contracts/debate";
 
 // ---------------------------------------------------------------------------
 // Client
@@ -193,7 +85,7 @@ export function createDebateClient(
     if (!base) {
       throw new DebateApiError(
         0,
-        "Missing NEXT_PUBLIC_INSFORGE_URL. Copy .env.local.example to .env.local and set your project URL.",
+        "Missing NEXT_PUBLIC_INSFORGE_URL. Copy .env.local.example to .env.local and set your project URL and anon key.",
       );
     }
     const res = await doFetch(`${base}/functions/${slug}`, {

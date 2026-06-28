@@ -1,0 +1,13 @@
+{
+  "name": "debate-the-wizard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:functions": "node scripts/build-functions.mjs",
+    "test:functions": "node scripts/test-function-units.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

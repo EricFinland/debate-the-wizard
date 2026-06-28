@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-test the local agent-workflow module.
+# Smoke-test the local backend agent-workflow module.
 # Usage:
 #   ./scripts/test-agent-workflow.sh
 #   ./scripts/test-agent-workflow.sh "Your debate argument here"
@@ -19,7 +19,7 @@ fi
 ARGUMENT="${1:-Nuclear power is bad for the climate because it creates dangerous waste and takes too long to build.}"
 
 TEST_ARGUMENT="$ARGUMENT" npx --yes tsx -e '
-import { runAgentWorkflow } from "./agent-workflow/index.ts";
+import { runAgentWorkflow } from "./backend/agent-workflow/index.ts";
 
 async function main() {
   const result = await runAgentWorkflow({

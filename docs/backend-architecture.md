@@ -1,19 +1,19 @@
 # Backend architecture & team contracts
 
 Everything runs on **InsForge**: Postgres + edge functions (Deno) + realtime + the
-model gateway (Claude). Edge functions deploy one file each
-(`npx @insforge/cli functions deploy <slug> --file <path>`), so each function is
-self-contained.
+model gateway (Claude). Function source lives in `backend/functions/src` and is
+bundled into one deployable file per function with `npm run build:functions`.
+Deploy from `backend/functions/dist/<slug>.ts`, not directly from source modules.
 
 ## Three tracks (so we don't collide)
 
 | Track | Owner | Owns |
 |---|---|---|
 | **Frontend** | teammate 1 | Next.js arena, side picker, citation panel, scorecard, verdict reveal. Talks to the edge functions over HTTPS + subscribes to realtime. |
-| **Agent pipeline** | teammate 2 | `judge-claim` (done) and `wizard-turn`. Both **pure**: take inputs, call You.com + Claude, return JSON. No DB, no realtime. |
-| **The rest (infra/glue)** | Eric (`Eric` branch) | rooms/session lifecycle, persistence, scoring, realtime fan-out, leaderboard, health, demo seed topics. Calls the pure functions over HTTP and persists/broadcasts. |
+| **Agent pipeline** | teammate 2 | `judge-claim` and `wizard-turn`. Both **pure**: take inputs, call You.com + Claude, return JSON. No DB, no realtime. |
+| **The rest (infra/glue)** | Eric (`Eric` branch) | rooms/session lifecycle, persistence, scoring, realtime fan-out, leaderboard, health, demo seed topics. Reuses shared source modules and persists/broadcasts. |
 
-The key idea from the plan holds: **the search+judge pipeline is built once and called twice** (player and wizard). Orchestration just feeds it and stores the result.
+The key idea from the plan holds: **the search+judge pipeline is built once and called twice** (player and wizard). Orchestration imports the shared pipeline at build time and stores the result.
 
 ## Edge function inventory
 

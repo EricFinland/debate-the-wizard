@@ -8,6 +8,7 @@ import {
   type Difficulty,
   type GetRoomResponse,
   type LeaderboardEntry,
+  type RawLeaderboardEntry,
   type ListRoomsResponse,
   type Profile,
   type Room,
@@ -109,6 +110,17 @@ function messageFromError(e: unknown): string {
   if (e instanceof DebateApiError) return e.message;
   if (e instanceof Error) return e.message;
   return "Something went wrong. Please try again.";
+}
+
+function normalizeLeaderboardEntry(entry: RawLeaderboardEntry): LeaderboardEntry {
+  if ("wins" in entry) return entry;
+  return {
+    display_name: entry.topic ?? "Anonymous challenger",
+    avatar_url: null,
+    wins: entry.score > 0 ? 1 : 0,
+    losses: entry.score <= 0 ? 1 : 0,
+    total_score: entry.score,
+  };
 }
 
 // Realistic-feeling pacing for the turn theater (ms).
@@ -431,11 +443,12 @@ export function useDebate(): UseDebate {
   const loadLeaderboard = useCallback(async () => {
     try {
       const res = await client.leaderboard();
-      setLeaderboard(res.leaderboard);
+      const rows = res.leaderboard.map(normalizeLeaderboardEntry);
+      setLeaderboard(rows);
       // Best-effort: hydrate the logged-in player's profile from their row.
       if (user && !profile) {
         const me = user.name ?? user.email ?? "";
-        const row = res.leaderboard.find(
+        const row = rows.find(
           (e) => (e.display_name ?? "") === me && me !== "",
         );
         if (row && mountedRef.current) {

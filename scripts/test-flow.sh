@@ -19,7 +19,6 @@ curl -sS -X POST "$(fn submit-argument)" -H "Content-Type: application/json" \
   -d "{\"room_id\":\"$ROOM_ID\",\"round_no\":1,\"argument\":\"Nuclear power emits almost no CO2 during operation, far less than coal per kWh.\"}" | jq .
 
 echo; echo "== advance-wizard (round 1) =="
-echo "(requires wizard-turn deployed; expect a 503 message until then)"
 curl -sS -X POST "$(fn advance-wizard)" -H "Content-Type: application/json" \
   -d "{\"room_id\":\"$ROOM_ID\",\"round_no\":1}" | jq .
 

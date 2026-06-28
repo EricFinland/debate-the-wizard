@@ -13,6 +13,8 @@ insforge.json.local
 
 # build
 dist/
+!backend/functions/dist/
+!backend/functions/dist/*.ts
 build/
 .vercel/
 .next/

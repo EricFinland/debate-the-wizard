@@ -8,7 +8,7 @@ Next.js 14 (App Router) + TypeScript + Tailwind CSS + framer-motion.
 
 ## Run it locally
 
-1. Copy the env example and set your InsForge project URL:
+1. Copy the env example and set your InsForge project URL and anon key:
 
    ```bash
    cp .env.local.example .env.local
@@ -17,7 +17,8 @@ Next.js 14 (App Router) + TypeScript + Tailwind CSS + framer-motion.
    Then edit `.env.local`:
 
    ```
-   NEXT_PUBLIC_INSFORGE_URL=https://YOUR-PROJECT.insforge.dev
+   NEXT_PUBLIC_INSFORGE_URL=https://YOUR-PROJECT.us-east.insforge.app
+   NEXT_PUBLIC_INSFORGE_ANON_KEY=YOUR-ANON-KEY
    ```
 
 2. Install dependencies:
@@ -51,6 +52,8 @@ npm run start
 - `lib/debate-client.ts` — self-contained typed client for the InsForge edge
   functions, plus all shared types. Reads the base URL from
   `NEXT_PUBLIC_INSFORGE_URL`.
+- `lib/insforge-auth.ts` — browser SDK singleton for auth and realtime. Reads
+  `NEXT_PUBLIC_INSFORGE_URL` and `NEXT_PUBLIC_INSFORGE_ANON_KEY`.
 - `lib/ui.ts` — shared UI helpers: `verdictStyles`, `cn`, `domainOf`.
 - `lib/seed-topics.ts` — the built-in debate topics.
 - `components/*` — presentational components (rendered from props, no data

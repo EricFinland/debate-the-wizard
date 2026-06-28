@@ -12,10 +12,13 @@
 
 import type {
   CreateRoomResponse,
+  Difficulty,
   GetRoomResponse,
   HealthResponse,
   JudgeResult,
   LeaderboardResponse,
+  ListRoomsResponse,
+  RecordMatchResponse,
   TurnResponse,
 } from "./types";
 
@@ -60,7 +63,13 @@ export function createDebateClient(baseUrl: string, opts: DebateClientOptions = 
   return {
     health: () => call<HealthResponse>("health", "GET"),
 
-    createRoom: (input: { topic?: string; topic_id?: string; rounds_total?: number }) =>
+    createRoom: (input: {
+      topic?: string;
+      topic_id?: string;
+      rounds_total?: number;
+      difficulty?: Difficulty;
+      host_user_id?: string;
+    }) =>
       call<CreateRoomResponse>("create-room", "POST", input),
 
     submitArgument: (input: { room_id: string; round_no: number; argument: string }) =>
@@ -73,6 +82,16 @@ export function createDebateClient(baseUrl: string, opts: DebateClientOptions = 
       call<GetRoomResponse>("get-room", "POST", input),
 
     leaderboard: () => call<LeaderboardResponse>("leaderboard", "GET"),
+
+    listRooms: () => call<ListRoomsResponse>("list-rooms", "GET"),
+
+    recordMatch: (input: {
+      user_id: string;
+      display_name?: string | null;
+      avatar_url?: string | null;
+      won: boolean | null;
+      score: number;
+    }) => call<RecordMatchResponse>("record-match", "POST", input),
 
     /** Direct access to the pure judge pipeline (rarely needed from the UI). */
     judgeClaim: (input: { argument: string; topic?: string }) =>

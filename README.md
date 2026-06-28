@@ -72,9 +72,11 @@ Three parallel tracks (see [docs/backend-architecture.md](docs/backend-architect
 ## Repo layout
 
 ```
-migrations/                 Postgres schema (InsForge CLI migrations)
-functions/judge-claim/      The core search + judge edge function
-agent-workflow/             Local TypeScript multi-agent debate workflow
+backend/functions/src/      Modular source for InsForge edge functions
+backend/functions/dist/     Generated one-file deploy bundles
+backend/agent-workflow/     Local TypeScript multi-agent debate workflow
+migrations/                 Backend-owned Postgres schema (InsForge CLI migrations)
+functions/                  Legacy one-file functions retained for reference
 docs/agent-workflow.md      Agent workflow diagram, responsibilities, and contracts
 scripts/test-judge.sh       curl smoke test for the deployed function
 scripts/test-agent-workflow.sh local smoke test for the agent workflow
@@ -84,6 +86,18 @@ SETUP.md                    Init -> deploy -> test, step by step
 
 See **[docs/agent-workflow.md](docs/agent-workflow.md)** for the evidence-grounded
 agent workflow, including the Mermaid diagram and data contracts.
+
+Build deployable edge function files with:
+
+```bash
+npm run build:functions
+```
+
+Deploy generated bundles only, for example:
+
+```bash
+npx @insforge/cli functions deploy judge-claim --file backend/functions/dist/judge-claim.ts
+```
 
 ## `judge-claim` response contract
 

@@ -51,30 +51,29 @@ npx @insforge/cli secrets list
 
 ## 4. Deploy the functions
 
-The core pipeline (agent-pipeline track):
+Build the one-file InsForge deploy bundles:
 
 ```bash
-npx @insforge/cli functions deploy judge-claim \
-  --file functions/judge-claim/index.ts \
-  --name "Judge a claim" \
-  --description "Grounds a debate claim in You.com results and rules supported/unsupported/misleading"
+npm install
+npm run build:functions
 ```
 
-The orchestration / infra functions ("the rest" track):
+Deploy generated bundles only:
 
 ```bash
-npx @insforge/cli functions deploy create-room     --file functions/create-room/index.ts     --name "Create room"
-npx @insforge/cli functions deploy submit-argument --file functions/submit-argument/index.ts --name "Submit argument"
-npx @insforge/cli functions deploy advance-wizard  --file functions/advance-wizard/index.ts  --name "Advance wizard"
-npx @insforge/cli functions deploy get-room        --file functions/get-room/index.ts        --name "Get room"
-npx @insforge/cli functions deploy leaderboard     --file functions/leaderboard/index.ts     --name "Leaderboard"
-npx @insforge/cli functions deploy health          --file functions/health/index.ts          --name "Health"
+npx @insforge/cli functions deploy judge-claim     --file backend/functions/dist/judge-claim.ts     --name "Judge a claim"
+npx @insforge/cli functions deploy wizard-turn     --file backend/functions/dist/wizard-turn.ts     --name "Wizard turn"
+npx @insforge/cli functions deploy create-room     --file backend/functions/dist/create-room.ts     --name "Create room"
+npx @insforge/cli functions deploy submit-argument --file backend/functions/dist/submit-argument.ts --name "Submit argument"
+npx @insforge/cli functions deploy advance-wizard  --file backend/functions/dist/advance-wizard.ts  --name "Advance wizard"
+npx @insforge/cli functions deploy get-room        --file backend/functions/dist/get-room.ts        --name "Get room"
+npx @insforge/cli functions deploy list-rooms      --file backend/functions/dist/list-rooms.ts      --name "List rooms"
+npx @insforge/cli functions deploy leaderboard     --file backend/functions/dist/leaderboard.ts     --name "Leaderboard"
+npx @insforge/cli functions deploy record-match    --file backend/functions/dist/record-match.ts    --name "Record match"
+npx @insforge/cli functions deploy health          --file backend/functions/dist/health.ts          --name "Health"
 
 npx @insforge/cli functions list
 ```
-
-`wizard-turn` is owned by the agent-pipeline branch; deploy it once that's ready
-(`advance-wizard` returns a clear 503 until then).
 
 Each is live at `https://<PROJECT>.insforge.dev/functions/<slug>`. Quick check:
 

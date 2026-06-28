@@ -1,6 +1,6 @@
 # Evidence-Grounded Agent Workflow
 
-This document describes the local TypeScript agent workflow in `agent-workflow/`.
+This document describes the local TypeScript agent workflow in `backend/agent-workflow/`.
 It is separate from the deployed `functions/judge-claim` edge function, but uses the
 same core idea: debate decisions should be grounded in independent You.com evidence.
 
