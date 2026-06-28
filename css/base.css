@@ -44,10 +44,20 @@ body {
 }
 
 #game-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100vw;
+    height: 100vh;
+    padding: 20px;
+}
+
+/* wrapper that reserves real layout space for the scaled canvas */
+#gb-wrap {
     position: relative;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-    transform: scale(2);
-    transform-origin: center;
+    flex: 0 0 auto;
+    /* width/height set by js/fit.js to 400*s / 260*s */
 }
 
 #game-boy {
@@ -56,10 +66,17 @@ body {
     background-color: var(--screen-bg);
     border: 4px solid #888;
     border-radius: 4px;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     overflow: hidden;
     image-rendering: pixelated;
+    transform-origin: top left;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    /* transform: scale(s) set by js/fit.js */
 }
+
+/* Side panel styling lives in css/debate.css (#side-panel + #side-citations). */
 
 /* --- Screen system --- */
 .screen {

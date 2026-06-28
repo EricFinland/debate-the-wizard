@@ -23,6 +23,31 @@ const Battle = (() => {
     const CAST_COLOR = '#b06bff';      // supported -> arcane bolt
     const FIZZLE_COLOR = '#9a9a9a';    // unsupported -> weak grey
 
+    /* curated debatable topics for the "pick for me" flow.
+       claim = the FOR position, counter = the AGAINST position. */
+    const TOPICS = [
+        { claim: 'Nuclear energy is the best tool we have for fighting climate change.',
+          counter: 'Nuclear energy is not the best tool for fighting climate change.' },
+        { claim: 'Cities should prioritize public transit over private cars.',
+          counter: 'Cities should not prioritize public transit over private cars.' },
+        { claim: 'AI should be heavily regulated by governments.',
+          counter: 'AI should not be heavily regulated by governments.' },
+        { claim: 'Social media should have a minimum age of 16.',
+          counter: 'Social media should not have a minimum age of 16.' },
+        { claim: 'Remote work makes companies more productive.',
+          counter: 'Remote work does not make companies more productive.' },
+        { claim: 'Space exploration deserves more public funding.',
+          counter: 'Space exploration does not deserve more public funding.' },
+        { claim: 'A four-day work week would benefit the economy.',
+          counter: 'A four-day work week would not benefit the economy.' },
+        { claim: 'College education should be free for everyone.',
+          counter: 'College education should not be free for everyone.' },
+        { claim: 'Electric vehicles are better for the planet than gas cars.',
+          counter: 'Electric vehicles are not better for the planet than gas cars.' },
+        { claim: 'Universal basic income would reduce poverty.',
+          counter: 'Universal basic income would not reduce poverty.' }
+    ];
+
     let player = null;
     let enemy = null;
     let busy = false;
@@ -63,7 +88,15 @@ const Battle = (() => {
             inputWrap: document.getElementById('debate-input-wrap'),
             argInput: document.getElementById('debate-arg-input'),
             submitBtn: document.getElementById('debate-submit'),
-            citationBox: document.getElementById('citation-box')
+            // citations now live in the side panel (shared DOM contract)
+            sideCitations: document.getElementById('side-citations'),
+            // legacy in-dialog citation box may no longer exist
+            citationBox: document.getElementById('citation-box'),
+            // pick-for-me flow
+            pickForMe: document.getElementById('pick-for-me'),
+            sidePicker: document.getElementById('side-picker'),
+            sideFor: document.getElementById('side-for'),
+            sideAgainst: document.getElementById('side-against')
         };
         actionNav = KeyboardNav.create({ columns: 2 });
 
@@ -93,6 +126,27 @@ const Battle = (() => {
                 submitArg();
             }
         });
+
+        // pick-for-me: reveal the side-picker with a random curated topic
+        if (els.pickForMe) {
+            els.pickForMe.addEventListener('click', event => {
+                event.stopPropagation();
+                openSidePicker();
+            });
+        }
+        // choosing a side immediately starts the duel (no typing needed)
+        if (els.sideFor) {
+            els.sideFor.addEventListener('click', event => {
+                event.stopPropagation();
+                chooseSide('for');
+            });
+        }
+        if (els.sideAgainst) {
+            els.sideAgainst.addEventListener('click', event => {
+                event.stopPropagation();
+                chooseSide('against');
+            });
+        }
 
         document.addEventListener('keydown', event => {
             if (ScreenManager.current() !== 'BATTLE') return;
@@ -198,7 +252,7 @@ const Battle = (() => {
     function askForText(placeholder) {
         return new Promise(resolve => {
             els.actionMenu.classList.add('hidden');
-            els.citationBox.classList.add('hidden');
+            hideLegacyCitationBox();
             els.arrow.classList.add('hidden');
             els.argInput.value = '';
             els.argInput.placeholder = placeholder || 'TYPE HERE...';
@@ -223,24 +277,29 @@ const Battle = (() => {
         fn(val);
     }
 
-    /* ---------- citations (You.com sources) ---------- */
+    /* ---------- citations (You.com sources) ----------
+       Citations render into the side panel (#side-citations) now, NOT the dialog.
+       Newest sources are prepended so the most recent turn sits on top. The
+       dialog only narrates the verdict; the big source dump lives to the right. */
     function showCitations(citations) {
-        lastCitations = Array.isArray(citations) ? citations.slice(0, 2) : [];
-        els.citationBox.innerHTML = '';
-        if (!lastCitations.length) {
-            els.citationBox.classList.add('hidden');
-            return;
-        }
-        const tag = document.createElement('div');
-        tag.className = 'youcom-tag';
-        tag.textContent = 'YOU.COM SOURCES';
-        els.citationBox.appendChild(tag);
+        const fresh = Array.isArray(citations) ? citations.slice(0, 2) : [];
+        lastCitations = fresh; // PACK / status still reference the latest turn
+        const list = els.sideCitations;
+        if (!list) return;
+        if (!fresh.length) return; // keep prior sources on screen if this turn had none
 
-        lastCitations.forEach(c => {
+        // build the group for this turn, newest-on-top
+        const group = document.createElement('div');
+        group.className = 'side-citation-group';
+
+        fresh.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'side-citation';
+
             const title = document.createElement('span');
             title.className = 'citation-title';
             title.textContent = c.title || 'Source';
-            els.citationBox.appendChild(title);
+            item.appendChild(title);
 
             if (c.url) {
                 const dom = document.createElement('span');
@@ -249,16 +308,30 @@ const Battle = (() => {
                 try { label = new URL(c.url).hostname.replace(/^www\./, ''); } catch (e) { /* keep raw */ }
                 dom.textContent = label;
                 dom.addEventListener('click', () => window.open(c.url, '_blank', 'noopener'));
-                els.citationBox.appendChild(dom);
+                item.appendChild(dom);
             }
             if (c.snippet) {
                 const snip = document.createElement('span');
                 snip.className = 'citation-snippet';
                 snip.textContent = c.snippet;
-                els.citationBox.appendChild(snip);
+                item.appendChild(snip);
             }
+            group.appendChild(item);
         });
-        els.citationBox.classList.remove('hidden');
+
+        // newest on top + scroll to it
+        list.insertBefore(group, list.firstChild);
+        list.scrollTop = 0;
+    }
+
+    /* clear the side panel sources (called on a fresh duel) */
+    function clearSideCitations() {
+        if (els.sideCitations) els.sideCitations.innerHTML = '';
+    }
+
+    /* hide the legacy in-dialog citation box if it still exists */
+    function hideLegacyCitationBox() {
+        if (els.citationBox) els.citationBox.classList.add('hidden');
     }
 
     /* ---------- battle setup ---------- */
@@ -308,7 +381,9 @@ const Battle = (() => {
         els.actionMenu.classList.add('hidden');
         els.moveMenu.classList.add('hidden');
         els.inputWrap.classList.add('hidden');
-        els.citationBox.classList.add('hidden');
+        hideLegacyCitationBox();
+        hideSidePicker();
+        clearSideCitations();
         els.arrow.classList.add('hidden');
         awaitingContinue = null;
         argResolver = null;
@@ -320,8 +395,17 @@ const Battle = (() => {
 
     async function beginDebate() {
         say('The ' + enemy.name + ' bars your path. STATE YOUR CLAIM to begin the duel!');
+        // The input wrap exposes a "pick for me" button alongside CAST; either a
+        // typed claim or a picked side funnels into launchDuel().
         const topic = await askForText('STATE YOUR CLAIM...');
+        await launchDuel(topic);
+    }
 
+    /* shared duel-start path: open the room for `topic` then drop into the
+       action menu. Used by both the typed claim and the pick-for-me side. */
+    async function launchDuel(topic) {
+        hideSidePicker();
+        els.inputWrap.classList.add('hidden');
         say('Opening the arena around "' + topic + '"...');
         try {
             const data = await Api.createRoom({
@@ -345,6 +429,43 @@ const Battle = (() => {
         showActionMenu();
     }
 
+    /* ---------- pick-for-me flow ---------- */
+    let pickedTopic = null; // { claim, counter } currently shown in the side-picker
+
+    function openSidePicker() {
+        // only meaningful while we're waiting for the opening claim
+        if (!argResolver) return;
+        const topic = TOPICS[rand(0, TOPICS.length - 1)];
+        pickedTopic = topic;
+        if (els.sideFor) els.sideFor.textContent = 'FOR: ' + topic.claim;
+        if (els.sideAgainst) els.sideAgainst.textContent = 'AGAINST: ' + topic.counter;
+        if (els.sidePicker) els.sidePicker.classList.remove('hidden');
+        say('Pick a side to duel instantly, or type your own claim.');
+    }
+
+    function hideSidePicker() {
+        if (els.sidePicker) els.sidePicker.classList.add('hidden');
+    }
+
+    function chooseSide(side) {
+        if (!pickedTopic) return;
+        const topic = side === 'against' ? pickedTopic.counter : pickedTopic.claim;
+        pickedTopic = null;
+        hideSidePicker();
+        // we're done waiting for a typed claim; consume the resolver cleanly
+        if (argResolver) {
+            const fn = argResolver;
+            argResolver = null;
+            els.inputWrap.classList.add('hidden');
+            els.submitBtn.disabled = true;
+            // resolve the askForText promise; beginDebate() will launch the duel
+            fn(topic);
+        } else {
+            // resolver already gone (defensive) — launch directly
+            launchDuel(topic);
+        }
+    }
+
     /* ---------- action menu ---------- */
     function showActionMenu() {
         els.moveMenu.classList.add('hidden');
@@ -359,16 +480,16 @@ const Battle = (() => {
         if (act === 'fight') {
             runRound();
         } else if (act === 'run') {
+            // leave the duel and return to the difficulty menu
             els.actionMenu.classList.add('hidden');
-            els.citationBox.classList.add('hidden');
+            hideLegacyCitationBox();
             say(player.name + ' fled the debate...');
             waitForClick().then(() => ScreenManager.show('MENU'));
         } else if (act === 'pack') {
-            // re-show the latest You.com citations
+            // sources now live in the side panel; point the player there
             els.actionMenu.classList.add('hidden');
             if (lastCitations.length) {
-                showCitations(lastCitations);
-                say('The last sources from You.com:');
+                say('Your You.com sources are in the panel on the right.');
             } else {
                 say('No sources gathered yet. Cast an argument first!');
             }
@@ -387,7 +508,7 @@ const Battle = (() => {
         if (busy) return;
         busy = true;
         els.actionMenu.classList.add('hidden');
-        els.citationBox.classList.add('hidden');
+        hideLegacyCitationBox();
 
         // ----- PLAYER TURN -----
         say('Cast your argument FOR the claim...');
@@ -540,7 +661,7 @@ const Battle = (() => {
         busy = true;
         els.actionMenu.classList.add('hidden');
         els.inputWrap.classList.add('hidden');
-        els.citationBox.classList.add('hidden');
+        hideLegacyCitationBox();
 
         let playerWon;
         if (player.hp <= 0 && enemy.hp <= 0) playerWon = player.hp >= enemy.hp;

@@ -14,6 +14,7 @@
 
 <body>
     <div id="game-container">
+        <div id="gb-wrap">
         <div id="game-boy">
             <div id="lcd-overlay"></div>
 
@@ -129,6 +130,16 @@
                     <div id="debate-input-wrap" class="debate-input hidden">
                         <textarea id="debate-arg-input" maxlength="280" placeholder="CAST YOUR ARGUMENT..." autocomplete="off"></textarea>
                         <button id="debate-submit" class="debate-submit" type="button">CAST</button>
+                        <button id="pick-for-me" class="debate-submit" type="button">PICK FOR ME</button>
+                    </div>
+
+                    <!-- side picker: pick a stance to auto-start the duel, no typing -->
+                    <div id="side-picker" class="side-picker hidden">
+                        <div class="side-picker-prompt">PICK YOUR SIDE</div>
+                        <div class="side-picker-btns">
+                            <button id="side-for" class="side-btn" type="button"></button>
+                            <button id="side-against" class="side-btn" type="button"></button>
+                        </div>
                     </div>
 
                     <!-- You.com citation(s) for the latest verdict -->
@@ -153,6 +164,13 @@
             </section>
 
         </div>
+        </div>
+
+        <!-- ============ YOU.COM SOURCES SIDE PANEL ============ -->
+        <aside id="side-panel">
+            <div class="side-panel-header">YOU.COM SOURCES</div>
+            <div id="side-citations"></div>
+        </aside>
     </div>
 
     <!-- Modules -->
@@ -165,6 +183,7 @@
     <script src="js/api.js"></script>
     <script src="js/leaderboard.js"></script>
     <script src="js/battle.js"></script>
+    <script src="js/fit.js"></script>
     <script src="js/main.js"></script>
 </body>
 

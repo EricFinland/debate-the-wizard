@@ -41,6 +41,7 @@
     --wizard-size: 120px;
     bottom: -2px;
     left: 42px;
+    z-index: 12; /* above #player-hud so the sprite is never covered */
 }
 
 /* attack lunges */
@@ -82,6 +83,7 @@
 #player-hud {
     bottom: 8px;
     right: 14px;
+    z-index: 6; /* below the player sprite so it can't obscure it */
 }
 
 .name {

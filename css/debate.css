@@ -41,23 +41,27 @@
     align-items: stretch;
     gap: 4px;
     width: 100%;
+    max-width: 100%;
     margin-top: 2px;
+    flex-wrap: wrap;
 }
 
 .debate-input textarea,
 .debate-input input {
-    flex: 1 1 auto;
+    flex: 1 1 140px;
     min-width: 0;
-    height: 40px;
+    max-width: 100%;
+    height: 44px;
+    max-height: 44px;
     resize: none;
     background: var(--debate-paper);
     color: var(--debate-ink);
     border: 2px solid var(--debate-ink);
     outline: none;
-    padding: 4px 5px;
+    padding: 5px 6px;
     font-family: 'GameFont', fantasy;
     font-size: 8px;
-    line-height: 1.4;
+    line-height: 1.5;
     image-rendering: pixelated;
     box-shadow: inset -2px -2px 0 0 #c8c8c8;
 }
@@ -110,7 +114,303 @@
 }
 
 /* ----------------------------------------
+   PICK FOR ME button (violet/gold accent, sits beside CAST)
+   ---------------------------------------- */
+.pick-for-me,
+#pick-for-me {
+    flex: 0 0 auto;
+    align-self: stretch;
+    background: var(--diff-impossible);
+    color: var(--debate-gold);
+    border: 2px solid var(--debate-ink);
+    padding: 0 9px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: nowrap;
+    image-rendering: pixelated;
+    box-shadow: -2px -2px 0 0 #5a2f97 inset, 2px 2px 0 0 #b585ef inset;
+}
+
+.pick-for-me:hover,
+.pick-for-me.is-key-selected,
+#pick-for-me:hover,
+#pick-for-me.is-key-selected {
+    background: var(--debate-gold);
+    color: #3a1d63;
+    box-shadow: -2px -2px 0 0 #9c7d1f inset, 2px 2px 0 0 #f0d566 inset;
+}
+
+.pick-for-me:active,
+#pick-for-me:active {
+    box-shadow: 2px 2px 0 0 #5a2f97 inset, -2px -2px 0 0 #b585ef inset;
+    transform: translate(1px, 1px);
+}
+
+/* ----------------------------------------
+   SIDE PICKER (pick-for-me -> choose a stance, no typing)
+   a centered block shown inside #dialog-box
+   ---------------------------------------- */
+.side-picker {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2px;
+}
+
+.side-picker .side-picker-prompt {
+    display: block;
+    text-align: center;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.4;
+    color: var(--debate-ink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.side-picker .side-picker-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.side-picker .side-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--debate-paper);
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    padding: 6px 7px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.5;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    image-rendering: pixelated;
+}
+
+.side-picker .side-btn .side-stance {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 1px 4px;
+    border: 1px solid var(--debate-ink);
+    color: var(--debate-paper);
+}
+
+/* FOR = green stance */
+#side-for {
+    box-shadow: -2px -2px 0 0 #2a7a30 inset, 2px 2px 0 0 #93e599 inset;
+}
+
+#side-for .side-stance {
+    background: var(--debate-green);
+}
+
+#side-for:hover,
+#side-for.is-key-selected {
+    background: var(--debate-green);
+    color: var(--debate-ink);
+}
+
+/* AGAINST = red stance */
+#side-against {
+    box-shadow: -2px -2px 0 0 #8a241a inset, 2px 2px 0 0 #e87a6e inset;
+}
+
+#side-against .side-stance {
+    background: var(--debate-red);
+}
+
+#side-against:hover,
+#side-against.is-key-selected {
+    background: var(--debate-red);
+    color: #fff;
+}
+
+.side-picker .side-btn:active {
+    transform: translate(1px, 1px);
+}
+
+/* ----------------------------------------
+   SIDE PANEL (You.com sources, right of the Game Boy)
+   filled by battle.js showCitations() into #side-citations
+   ---------------------------------------- */
+#side-panel {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    /* width must match js/fit.js sidePanelWidth() clamp so the canvas is sized right */
+    flex: 0 0 clamp(280px, 26vw, 420px);
+    height: 100%;
+    background: var(--debate-ink);
+    border: 4px solid #888;
+    border-radius: 4px;
+    color: var(--debate-paper);
+    image-rendering: pixelated;
+    overflow: hidden;
+}
+
+#side-panel .side-panel-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 9px 10px;
+    font-family: 'GameFont', fantasy;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--debate-gold);
+    background: var(--youcom-blue);
+    border-bottom: 3px solid #000;
+}
+
+#side-panel .side-panel-header::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--debate-gold);
+    border: 1px solid #000;
+    image-rendering: pixelated;
+}
+
+#side-citations {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 9px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--debate-gold) var(--debate-ink);
+}
+
+#side-citations::-webkit-scrollbar {
+    width: 7px;
+}
+
+#side-citations::-webkit-scrollbar-track {
+    background: #0c0c0c;
+}
+
+#side-citations::-webkit-scrollbar-thumb {
+    background: var(--debate-gold);
+    border: 1px solid #000;
+}
+
+/* the YOU.COM SOURCES tag battle.js prepends; redundant in panel -> hide */
+#side-citations .youcom-tag {
+    display: none;
+}
+
+/* empty-state hint when there are no sources yet */
+#side-citations:empty::before {
+    content: 'NO SOURCES YET. CAST AN ARGUMENT.';
+    display: block;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.6;
+    letter-spacing: 1px;
+    color: #6f7790;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 14px 8px;
+}
+
+/* one compact pixel source card per citation block.
+   battle.js emits .citation-title, .citation-domain, .citation-snippet
+   as a flat run; the title starts each new card. */
+#side-citations .citation-title {
+    display: block;
+    background: #232a40;
+    border: 2px solid #000;
+    box-shadow: -2px -2px 0 0 #11151f inset, 2px 2px 0 0 #39456a inset;
+    margin: 0 0 0 0;
+    padding: 6px 7px 5px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.5;
+    color: #fff;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* spacing between cards: a title that follows a previous card gets a gap */
+#side-citations .citation-snippet + .citation-title,
+#side-citations .citation-domain + .citation-title {
+    margin-top: 10px;
+}
+
+#side-citations .citation-domain {
+    display: block;
+    background: #232a40;
+    border: 2px solid #000;
+    border-top: none;
+    padding: 4px 7px;
+    font-family: 'GameFont', fantasy;
+    font-size: 7px;
+    line-height: 1.4;
+    color: var(--debate-gold);
+    text-decoration: underline;
+    word-break: break-all;
+    cursor: pointer;
+}
+
+#side-citations .citation-domain:hover {
+    color: #fff;
+    background: #2c3552;
+}
+
+#side-citations .citation-snippet {
+    display: block;
+    background: #1d2333;
+    border: 2px solid #000;
+    border-top: none;
+    padding: 6px 7px 7px;
+    margin-bottom: 0;
+    max-height: none;
+    overflow: visible;
+    font-family: 'GameFont', fantasy;
+    font-size: 7px;
+    line-height: 1.6;
+    color: #c4ccdf;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Powered by You.com footer */
+#side-panel .side-panel-footer {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 7px 8px;
+    font-family: 'GameFont', fantasy;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8b93ad;
+    background: #0e1018;
+    border-top: 3px solid #000;
+}
+
+#side-panel .side-panel-footer b {
+    color: var(--debate-gold);
+    font-weight: normal;
+}
+
+/* ----------------------------------------
    CITATION BOX (You.com sourcing)
+   legacy in-dialog fallback; kept for battle.js compatibility
    ---------------------------------------- */
 .citation-box {
     width: 100%;
