@@ -145,3 +145,47 @@ body {
         opacity: 0;
     }
 }
+
+/* --- Sponsor credits (fixed bottom-right) --- */
+#sponsors {
+    position: fixed;
+    bottom: 10px;
+    right: 12px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'GameFont', fantasy;
+    pointer-events: none;
+}
+
+#sponsors .sponsors-label {
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #8a93b0;
+}
+
+#sponsors .sponsor-chip {
+    pointer-events: auto;
+    font-size: 9px;
+    text-decoration: none;
+    padding: 5px 9px;
+    border: 2px solid #888;
+    border-radius: 4px;
+    background: #181822;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+#sponsors .sponsor-you {
+    color: #e9c46a;
+    border-color: #e9c46a;
+}
+
+#sponsors .sponsor-insforge {
+    color: #a06bff;
+    border-color: #a06bff;
+}
+
+#sponsors .sponsor-chip:hover {
+    filter: brightness(1.25);
+}

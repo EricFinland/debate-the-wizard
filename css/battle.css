@@ -96,13 +96,22 @@
     z-index: 12; /* above #player-hud so the sprite is never covered */
 }
 
-/* attack lunges (player lunges right, enemy lunges left toward player) */
+/* attack lunges — a clear jab toward the opponent (player bottom-left -> enemy
+   top-right; enemy is scaleX(-1) so its +x reads leftward toward the player) */
 #player-wizard.lunge {
-    transform: translateX(26px);
+    animation: jab-player 0.45s ease;
+}
+@keyframes jab-player {
+    0%, 100% { transform: translate(0, 0); }
+    45%      { transform: translate(48px, -16px) scale(1.08); }
 }
 
 #enemy-wizard.lunge {
-    transform: scaleX(-1) translateX(26px);
+    animation: jab-enemy 0.45s ease;
+}
+@keyframes jab-enemy {
+    0%, 100% { transform: scaleX(-1) translate(0, 0); }
+    45%      { transform: scaleX(-1) translate(48px, 16px) scale(1.08); }
 }
 
 /* faint */
