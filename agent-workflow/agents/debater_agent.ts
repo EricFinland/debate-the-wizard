@@ -7,7 +7,7 @@ import { callModelJson } from "../utils/model_gateway.ts";
 import { selfCheckRebuttal } from "../utils/self_check.ts";
 
 export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResult> {
-  const userClaimReport = await runClaimResearchSubAgent({
+  const { user_claim_report: userClaimReport, search_evidence: searchEvidence } = await runClaimResearchSubAgent({
     user_argument: input.user_argument,
   });
 
@@ -15,6 +15,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
     runFactCheckSubAgent({
       user_argument: input.user_argument,
       user_claim_report: userClaimReport,
+      search_evidence: searchEvidence,
     }),
     runFallacyDetectionSubAgent({
       user_argument: input.user_argument,
@@ -25,6 +26,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
   let synthesis = await synthesizeDebateRebuttal({
     user_argument: input.user_argument,
     user_claim_report: userClaimReport,
+    search_evidence: searchEvidence,
     fact_check_report: factCheckReport,
     fallacy_report: fallacyReport,
   });
@@ -37,6 +39,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
     synthesis = await synthesizeDebateRebuttal({
       user_argument: input.user_argument,
       user_claim_report: userClaimReport,
+      search_evidence: searchEvidence,
       fact_check_report: factCheckReport,
       fallacy_report: fallacyReport,
       previous_issues: selfCheck.issues,
@@ -50,6 +53,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
     strongest_counterpoints: synthesis.strongest_counterpoints,
     confidence: synthesis.confidence,
     user_claim_report: userClaimReport,
+    search_evidence: searchEvidence,
     fact_check_report: factCheckReport,
     fallacy_report: fallacyReport,
     self_check: {
@@ -67,4 +71,3 @@ function synthesizeDebateRebuttal(input: Parameters<typeof buildDebaterUserPromp
     temperature: 0.35,
   });
 }
-

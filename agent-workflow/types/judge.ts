@@ -2,6 +2,7 @@ import type {
   AgentWorkflowInput,
   FactCheckReport,
   FallacyReport,
+  SearchEvidence,
   UserClaimReport,
   Winner,
 } from "./common.ts";
@@ -18,6 +19,7 @@ export interface DebateScore {
 export interface JudgeInput extends DebaterReports {
   user_argument: string;
   ai_rebuttal: string;
+  search_evidence: SearchEvidence;
 }
 
 export interface JudgeResult {
@@ -41,4 +43,3 @@ export interface AgentWorkflowResult extends AgentWorkflowInput, DebaterReports 
   };
   judge_result: JudgeResult;
 }
-

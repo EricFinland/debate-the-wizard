@@ -7,10 +7,13 @@ export { runDebaterAgent } from "./agents/debater_agent.ts";
 export { runJudgeAgent } from "./agents/judge_agent.ts";
 export type {
   AgentWorkflowInput,
+  Citation,
+  ClaimResearchResult,
   FactCheckReport,
   FallacyReport,
   LogicQuality,
   Reliability,
+  SearchEvidence,
   Severity,
   UserClaimReport,
   Winner,
@@ -34,6 +37,7 @@ export async function runAgentWorkflow(input: AgentWorkflowInput): Promise<Agent
     user_argument: input.user_argument,
     ai_rebuttal: debaterResult.ai_rebuttal,
     user_claim_report: debaterResult.user_claim_report,
+    search_evidence: debaterResult.search_evidence,
     fact_check_report: debaterResult.fact_check_report,
     fallacy_report: debaterResult.fallacy_report,
   });
@@ -42,6 +46,7 @@ export async function runAgentWorkflow(input: AgentWorkflowInput): Promise<Agent
     user_argument: input.user_argument,
     ai_rebuttal: debaterResult.ai_rebuttal,
     user_claim_report: debaterResult.user_claim_report,
+    search_evidence: debaterResult.search_evidence,
     fact_check_report: debaterResult.fact_check_report,
     fallacy_report: debaterResult.fallacy_report,
     debater_result: {
@@ -53,4 +58,3 @@ export async function runAgentWorkflow(input: AgentWorkflowInput): Promise<Agent
     judge_result: judgeResult,
   };
 }
-

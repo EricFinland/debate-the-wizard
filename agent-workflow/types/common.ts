@@ -6,12 +6,30 @@ export type LogicQuality = "strong" | "okay" | "weak";
 
 export type Winner = "user" | "ai" | "tie";
 
+export interface Citation {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface SearchEvidence {
+  query: string;
+  citations: Citation[];
+}
+
 export interface UserClaimReport {
   main_claim: string;
   supporting_claims: string[];
+  user_provided_evidence_claims: string[];
+  search_query: string;
   context_summary: string;
   possible_weak_points: string[];
   useful_evidence: string[];
+}
+
+export interface ClaimResearchResult {
+  user_claim_report: UserClaimReport;
+  search_evidence: SearchEvidence;
 }
 
 export interface FactCheckReport {
@@ -21,6 +39,7 @@ export interface FactCheckReport {
     explanation: string;
   }[];
   overall_reliability: Reliability;
+  citations: Citation[];
 }
 
 export interface FallacyReport {
@@ -36,4 +55,3 @@ export interface FallacyReport {
 export interface AgentWorkflowInput {
   user_argument: string;
 }
-

@@ -1,4 +1,4 @@
-import type { AgentWorkflowInput, FactCheckReport, FallacyReport, UserClaimReport } from "./common.ts";
+import type { AgentWorkflowInput, FactCheckReport, FallacyReport, SearchEvidence, UserClaimReport } from "./common.ts";
 
 export type DebaterInput = AgentWorkflowInput;
 
@@ -11,6 +11,7 @@ export interface DebaterSynthesis {
 
 export interface DebaterReports {
   user_claim_report: UserClaimReport;
+  search_evidence: SearchEvidence;
   fact_check_report: FactCheckReport;
   fallacy_report: FallacyReport;
 }
@@ -26,4 +27,3 @@ export interface DebaterResult extends DebaterReports {
     retried: boolean;
   };
 }
-

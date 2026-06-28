@@ -14,6 +14,7 @@ fi
 
 : "${INSFORGE_API_URL:?Set INSFORGE_API_URL in .env or your shell.}"
 : "${INSFORGE_API_KEY:?Set INSFORGE_API_KEY in .env or your shell.}"
+: "${YOUCOM_API_KEY:?Set YOUCOM_API_KEY in .env or your shell.}"
 
 ARGUMENT="${1:-Nuclear power is bad for the climate because it creates dangerous waste and takes too long to build.}"
 
