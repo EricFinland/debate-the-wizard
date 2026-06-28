@@ -1,0 +1,347 @@
+/* ========================================
+   SCREENS - Main Menu, Registration, Difficulty Menu
+   ======================================== */
+
+/* ---------- MAIN MENU ---------- */
+#main-menu-screen {
+    background: var(--gs-black);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+}
+
+.mm-title {
+    color: var(--gold);
+    font-size: 24px;
+    line-height: 30px;
+    text-shadow: 3px 3px 0 #000, 0 0 12px rgba(216, 176, 48, 0.4);
+}
+
+.mm-sub {
+    font-size: 8px;
+    color: #9aa6c8;
+    margin-bottom: 10px;
+}
+
+.mm-menu {
+    background: #fff;
+    color: #000;
+    border: 4px solid var(--ui-border);
+    border-radius: 4px;
+    padding: 12px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 140px;
+}
+
+.mm-opt {
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.mm-opt::before {
+    content: '\25B6';
+    width: 14px;
+    display: inline-block;
+    visibility: hidden;
+}
+
+.mm-opt:hover::before,
+.mm-opt.is-key-selected::before {
+    visibility: visible;
+    color: var(--diff-medium);
+}
+
+.mm-opt.disabled {
+    color: #b8b8b8;
+    cursor: not-allowed;
+}
+
+.mm-opt.disabled:hover::before {
+    visibility: hidden;
+}
+
+.mm-foot {
+    font-size: 6px;
+    color: #666;
+    margin-top: 6px;
+}
+
+/* ---------- REGISTRATION ---------- */
+#registration-screen {
+    background: var(--gs-blue);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 18px;
+}
+
+.reg-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: var(--gold);
+}
+
+.reg-label {
+    font-size: 7px;
+    margin-bottom: 8px;
+    color: #cdd5ea;
+}
+
+#name-input {
+    background: #fff;
+    color: #000;
+    border: 2px solid #888;
+    padding: 6px;
+    font-family: 'GameFont', fantasy;
+    font-size: 11px;
+    text-transform: uppercase;
+    width: 150px;
+    text-align: center;
+    outline: none;
+}
+
+.color-picker {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.color-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.color-opt span {
+    font-size: 6px;
+    color: #cdd5ea;
+}
+
+.color-opt:hover,
+.color-opt.is-key-selected {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.color-opt.selected,
+.color-opt.is-key-selected {
+    border-color: var(--gold);
+    background: rgba(216, 176, 48, 0.18);
+}
+
+.color-opt.selected span,
+.color-opt.is-key-selected span {
+    color: var(--gold);
+}
+
+.swatch-wizard {
+    --wizard-size: 40px;
+}
+
+.reg-btns {
+    display: flex;
+    gap: 18px;
+    margin-top: 4px;
+}
+
+.reg-error {
+    font-size: 6px;
+    color: #ff8a7a;
+    margin-top: 10px;
+}
+
+/* ---------- DIFFICULTY MENU ---------- */
+#menu-screen {
+    background: linear-gradient(to bottom, #2a2140 0%, #181420 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 14px;
+}
+
+.menu-title {
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 4px;
+}
+
+.menu-greeting {
+    font-size: 7px;
+    color: #cdd5ea;
+    margin-bottom: 12px;
+}
+
+.staff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 44px;
+}
+
+.staff-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 5px 14px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    transition: transform 0.1s, background 0.1s;
+}
+
+.staff-opt:hover,
+.staff-opt.is-key-selected {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.staff-label {
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.menu-foot {
+    font-size: 7px;
+    color: #9aa6c8;
+    margin-top: 12px;
+    cursor: pointer;
+}
+
+.menu-foot:hover,
+.menu-foot.is-key-selected {
+    color: #fff;
+}
+
+.staff-img {
+    width: 72px;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+/* ---------- ACCOUNT ---------- */
+#account-screen {
+    background: var(--gs-blue);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 14px;
+}
+
+.acct-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: var(--gold);
+}
+
+.acct-sub {
+    font-size: 7px;
+    color: #cdd5ea;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+#account-screen input {
+    background: #fff;
+    color: #000;
+    border: 2px solid #888;
+    padding: 6px;
+    font-family: 'GameFont', fantasy;
+    font-size: 9px;
+    text-transform: uppercase;
+    width: 160px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 8px;
+    display: block;
+}
+
+#account-screen input::placeholder {
+    color: #999;
+}
+
+.acct-btns {
+    display: flex;
+    gap: 14px;
+    margin-top: 2px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.acct-divider {
+    font-size: 6px;
+    color: #9aa6c8;
+    margin: 4px 0 8px;
+    text-align: center;
+}
+
+.acct-oauth {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.acct-oauth-btn {
+    font-size: 7px;
+}
+
+.acct-note {
+    font-size: 6px;
+    color: #cdd5ea;
+    margin-top: 8px;
+    text-align: center;
+}
+
+.acct-error {
+    font-size: 6px;
+    color: #ff8a7a;
+    margin-top: 10px;
+    text-align: center;
+    max-width: 170px;
+}
+
+.acct-email-display {
+    font-size: 8px;
+    color: var(--gold);
+    margin-bottom: 6px;
+    text-align: center;
+    word-break: break-all;
+    max-width: 170px;
+}
+
+.acct-rank-note {
+    font-size: 6px;
+    color: #cdd5ea;
+    margin-bottom: 10px;
+    text-align: center;
+    max-width: 170px;
+}
+
+.acct-foot {
+    font-size: 7px;
+    color: #9aa6c8;
+    margin-top: 14px;
+    cursor: pointer;
+}
+
+.acct-foot:hover,
+.acct-foot.is-key-selected {
+    color: #fff;
+}

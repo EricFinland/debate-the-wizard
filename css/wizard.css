@@ -1,0 +1,94 @@
+/* ========================================
+   WIZARD - sprite-sheet animation
+   Each sheet: 576x512 = 9 cols x 8 rows of 64x64 frames.
+   Rows: 0 idle-ground(5), 1 idle-air(5), 2 fly(3), 3 walk(8),
+         4 hurt(1), 5 dead(4), 6 ground-attack(9), 7 air-attack(9)
+   ======================================== */
+
+.wizard {
+    --wizard-size: 96px;
+    width: var(--wizard-size);
+    height: var(--wizard-size);
+    background-repeat: no-repeat;
+    /* whole sheet scaled so one frame == --wizard-size */
+    background-size: calc(var(--wizard-size) * 9) calc(var(--wizard-size) * 8);
+    background-position: 0 0;
+    image-rendering: pixelated;
+}
+
+/* --- color -> sheet --- */
+.wizard--red {
+    background-image: url('../img/wizards/wizard-red.png');
+}
+
+.wizard--green {
+    background-image: url('../img/wizards/wizard-green.png');
+}
+
+.wizard--grey {
+    background-image: url('../img/wizards/wizard-grey.png');
+}
+
+.wizard--purple {
+    background-image: url('../img/wizards/wizard-purple.png');
+}
+
+/* --- animation states (background-position-y selects the row) --- */
+
+/* idle on ground: row 0, 5 frames, loop */
+.wizard--idle {
+    background-position-y: 0;
+    animation: wizard-idle 0.8s steps(5) infinite;
+}
+
+@keyframes wizard-idle {
+    from {
+        background-position-x: 0;
+    }
+    to {
+        background-position-x: calc(var(--wizard-size) * -5);
+    }
+}
+
+/* ground attack: row 6, 9 frames, play once */
+.wizard--attack {
+    background-position-y: calc(var(--wizard-size) * -6);
+    animation: wizard-attack 0.7s steps(9) 1;
+}
+
+@keyframes wizard-attack {
+    from {
+        background-position-x: 0;
+    }
+    to {
+        background-position-x: calc(var(--wizard-size) * -9);
+    }
+}
+
+/* taking damage: row 4, single frame */
+.wizard--hurt {
+    background-position-y: calc(var(--wizard-size) * -4);
+    background-position-x: 0;
+    animation: wizard-flash 0.12s steps(1) 3;
+}
+
+@keyframes wizard-flash {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+/* dead: row 5, 4 frames, play once and hold last frame */
+.wizard--dead {
+    background-position-y: calc(var(--wizard-size) * -5);
+    animation: wizard-dead 0.6s steps(4) 1 forwards;
+}
+
+@keyframes wizard-dead {
+    from {
+        background-position-x: 0;
+    }
+    to {
+        background-position-x: calc(var(--wizard-size) * -4);
+    }
+}

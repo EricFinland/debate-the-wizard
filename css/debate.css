@@ -1,0 +1,766 @@
+/* ========================================
+   DEBATE - Pixel UI for the You.com debate battle
+   Loaded AFTER base/battle css so it can override.
+   Crisp, chunky, 2-3 color. No blur / no gradients.
+   ======================================== */
+
+:root {
+    --debate-ink: var(--gs-black);
+    --debate-paper: var(--screen-bg);
+    --debate-gold: var(--gold);
+    --debate-green: var(--hp-green);
+    --debate-red: var(--hp-red);
+    --debate-grey: var(--diff-hard);
+    --youcom-blue: var(--gs-blue);
+}
+
+/* ----------------------------------------
+   STATE YOUR CLAIM prompt
+   ---------------------------------------- */
+.debate-prompt {
+    display: block;
+    width: 100%;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.4;
+    color: var(--debate-ink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.debate-prompt .blink-text {
+    color: var(--debate-red);
+}
+
+/* ----------------------------------------
+   ARGUMENT INPUT (lives inside #dialog-box)
+   ---------------------------------------- */
+.debate-input {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2px;
+    flex-wrap: wrap;
+}
+
+.debate-input textarea,
+.debate-input input {
+    flex: 1 1 140px;
+    min-width: 0;
+    max-width: 100%;
+    height: 44px;
+    max-height: 44px;
+    resize: none;
+    background: var(--debate-paper);
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    outline: none;
+    padding: 5px 6px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.5;
+    image-rendering: pixelated;
+    box-shadow: inset -2px -2px 0 0 #c8c8c8;
+}
+
+.debate-input textarea::placeholder,
+.debate-input input::placeholder {
+    color: #9a9a9a;
+    text-transform: uppercase;
+}
+
+.debate-input textarea:focus,
+.debate-input input:focus {
+    border-color: var(--debate-gold);
+    box-shadow: inset -2px -2px 0 0 #c8c8c8, 0 0 0 2px var(--debate-gold);
+}
+
+/* chunky SUBMIT button */
+.debate-submit {
+    flex: 0 0 auto;
+    align-self: stretch;
+    background: var(--debate-green);
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    padding: 0 10px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    image-rendering: pixelated;
+    box-shadow: -2px -2px 0 0 #2a7a30 inset, 2px 2px 0 0 #93e599 inset;
+}
+
+.debate-submit:hover {
+    background: var(--debate-gold);
+    color: var(--debate-ink);
+    box-shadow: -2px -2px 0 0 #9c7d1f inset, 2px 2px 0 0 #f0d566 inset;
+}
+
+.debate-submit:active {
+    box-shadow: 2px 2px 0 0 #2a7a30 inset, -2px -2px 0 0 #93e599 inset;
+    transform: translate(1px, 1px);
+}
+
+.debate-submit:disabled {
+    background: var(--debate-grey);
+    color: #efefef;
+    cursor: default;
+    box-shadow: none;
+}
+
+/* ----------------------------------------
+   PICK FOR ME button (violet/gold accent, sits beside CAST)
+   ---------------------------------------- */
+.pick-for-me,
+#pick-for-me {
+    flex: 0 0 auto;
+    align-self: stretch;
+    background: var(--diff-impossible);
+    color: var(--debate-gold);
+    border: 2px solid var(--debate-ink);
+    padding: 0 9px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: nowrap;
+    image-rendering: pixelated;
+    box-shadow: -2px -2px 0 0 #5a2f97 inset, 2px 2px 0 0 #b585ef inset;
+}
+
+.pick-for-me:hover,
+.pick-for-me.is-key-selected,
+#pick-for-me:hover,
+#pick-for-me.is-key-selected {
+    background: var(--debate-gold);
+    color: #3a1d63;
+    box-shadow: -2px -2px 0 0 #9c7d1f inset, 2px 2px 0 0 #f0d566 inset;
+}
+
+.pick-for-me:active,
+#pick-for-me:active {
+    box-shadow: 2px 2px 0 0 #5a2f97 inset, -2px -2px 0 0 #b585ef inset;
+    transform: translate(1px, 1px);
+}
+
+/* ----------------------------------------
+   SIDE PICKER (pick-for-me -> choose a stance, no typing)
+   a centered block shown inside #dialog-box
+   ---------------------------------------- */
+.side-picker {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2px;
+}
+
+.side-picker .side-picker-prompt {
+    display: block;
+    text-align: center;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.4;
+    color: var(--debate-ink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.side-picker .side-picker-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.side-picker .side-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--debate-paper);
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    padding: 6px 7px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.5;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    image-rendering: pixelated;
+}
+
+.side-picker .side-btn .side-stance {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 1px 4px;
+    border: 1px solid var(--debate-ink);
+    color: var(--debate-paper);
+}
+
+/* FOR = green stance */
+#side-for {
+    box-shadow: -2px -2px 0 0 #2a7a30 inset, 2px 2px 0 0 #93e599 inset;
+}
+
+#side-for .side-stance {
+    background: var(--debate-green);
+}
+
+#side-for:hover,
+#side-for.is-key-selected {
+    background: var(--debate-green);
+    color: var(--debate-ink);
+}
+
+/* AGAINST = red stance */
+#side-against {
+    box-shadow: -2px -2px 0 0 #8a241a inset, 2px 2px 0 0 #e87a6e inset;
+}
+
+#side-against .side-stance {
+    background: var(--debate-red);
+}
+
+#side-against:hover,
+#side-against.is-key-selected {
+    background: var(--debate-red);
+    color: #fff;
+}
+
+.side-picker .side-btn:active {
+    transform: translate(1px, 1px);
+}
+
+/* ----------------------------------------
+   SIDE PANEL (You.com sources, right of the Game Boy)
+   filled by battle.js showCitations() into #side-citations
+   ---------------------------------------- */
+#side-panel {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    /* width must match js/fit.js sidePanelWidth() clamp so the canvas is sized right */
+    flex: 0 0 clamp(280px, 26vw, 420px);
+    height: 100%;
+    background: var(--debate-ink);
+    border: 4px solid #888;
+    border-radius: 4px;
+    color: var(--debate-paper);
+    image-rendering: pixelated;
+    overflow: hidden;
+}
+
+#side-panel .side-panel-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 9px 10px;
+    font-family: 'GameFont', fantasy;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--debate-gold);
+    background: var(--youcom-blue);
+    border-bottom: 3px solid #000;
+}
+
+#side-panel .side-panel-header::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--debate-gold);
+    border: 1px solid #000;
+    image-rendering: pixelated;
+}
+
+#side-citations {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 9px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--debate-gold) var(--debate-ink);
+}
+
+#side-citations::-webkit-scrollbar {
+    width: 7px;
+}
+
+#side-citations::-webkit-scrollbar-track {
+    background: #0c0c0c;
+}
+
+#side-citations::-webkit-scrollbar-thumb {
+    background: var(--debate-gold);
+    border: 1px solid #000;
+}
+
+/* the YOU.COM SOURCES tag battle.js prepends; redundant in panel -> hide */
+#side-citations .youcom-tag {
+    display: none;
+}
+
+/* empty-state hint when there are no sources yet */
+#side-citations:empty::before {
+    content: 'NO SOURCES YET. CAST AN ARGUMENT.';
+    display: block;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.6;
+    letter-spacing: 1px;
+    color: #6f7790;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 14px 8px;
+}
+
+/* one compact pixel source card per citation block.
+   battle.js emits .citation-title, .citation-domain, .citation-snippet
+   as a flat run; the title starts each new card. */
+#side-citations .citation-title {
+    display: block;
+    background: #232a40;
+    border: 2px solid #000;
+    box-shadow: -2px -2px 0 0 #11151f inset, 2px 2px 0 0 #39456a inset;
+    margin: 0 0 0 0;
+    padding: 6px 7px 5px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.5;
+    color: #fff;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* spacing between cards: a title that follows a previous card gets a gap */
+#side-citations .citation-snippet + .citation-title,
+#side-citations .citation-domain + .citation-title {
+    margin-top: 10px;
+}
+
+#side-citations .citation-domain {
+    display: block;
+    background: #232a40;
+    border: 2px solid #000;
+    border-top: none;
+    padding: 4px 7px;
+    font-family: 'GameFont', fantasy;
+    font-size: 7px;
+    line-height: 1.4;
+    color: var(--debate-gold);
+    text-decoration: underline;
+    word-break: break-all;
+    cursor: pointer;
+}
+
+#side-citations .citation-domain:hover {
+    color: #fff;
+    background: #2c3552;
+}
+
+#side-citations .citation-snippet {
+    display: block;
+    background: #1d2333;
+    border: 2px solid #000;
+    border-top: none;
+    padding: 6px 7px 7px;
+    margin-bottom: 0;
+    max-height: none;
+    overflow: visible;
+    font-family: 'GameFont', fantasy;
+    font-size: 7px;
+    line-height: 1.6;
+    color: #c4ccdf;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Powered by You.com footer */
+#side-panel .side-panel-footer {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 7px 8px;
+    font-family: 'GameFont', fantasy;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8b93ad;
+    background: #0e1018;
+    border-top: 3px solid #000;
+}
+
+#side-panel .side-panel-footer b {
+    color: var(--debate-gold);
+    font-weight: normal;
+}
+
+/* ----------------------------------------
+   CITATION BOX (You.com sourcing)
+   legacy in-dialog fallback; kept for battle.js compatibility
+   ---------------------------------------- */
+.citation-box {
+    width: 100%;
+    margin-top: 4px;
+    border: 2px solid var(--debate-ink);
+    background: var(--debate-paper);
+    padding: 4px 5px 5px;
+    font-family: 'GameFont', fantasy;
+    box-shadow: -2px -2px 0 0 #d0d0d0 inset;
+}
+
+/* You.com source tag */
+.citation-box .youcom-tag {
+    display: inline-block;
+    background: var(--youcom-blue);
+    color: var(--debate-gold);
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 4px;
+    border: 1px solid var(--debate-ink);
+    margin-bottom: 3px;
+    image-rendering: pixelated;
+}
+
+.citation-box .citation-title {
+    display: block;
+    font-size: 8px;
+    color: var(--debate-ink);
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+
+.citation-box .citation-domain {
+    display: block;
+    font-size: 7px;
+    color: var(--youcom-blue);
+    text-decoration: underline;
+    word-break: break-all;
+    margin-bottom: 3px;
+    cursor: pointer;
+}
+
+.citation-box .citation-domain:hover {
+    color: var(--debate-gold);
+}
+
+/* snippet: scrollable, clamp ~3 lines */
+.citation-box .citation-snippet {
+    display: block;
+    font-size: 7px;
+    line-height: 1.45;
+    color: #404040;
+    max-height: 31px; /* ~3 lines at 7px */
+    overflow-y: auto;
+    padding-right: 2px;
+    scrollbar-width: thin;
+}
+
+.citation-box .citation-snippet::-webkit-scrollbar {
+    width: 4px;
+}
+
+.citation-box .citation-snippet::-webkit-scrollbar-thumb {
+    background: var(--debate-ink);
+}
+
+/* ----------------------------------------
+   ROUND RESULT (tidy both-sides verdict card inside #dialog-box)
+   color-coded by verdict; overlays the dialog like #action-menu
+   ---------------------------------------- */
+.round-result {
+    position: absolute;
+    inset: 6px;
+    background: #fff;
+    border: 2px solid var(--debate-ink);
+    border-radius: 4px;
+    padding: 6px 7px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    font-family: 'GameFont', fantasy;
+    z-index: 7;
+}
+
+.round-result.hidden {
+    display: none;
+}
+
+.round-result::-webkit-scrollbar {
+    width: 5px;
+}
+
+.round-result::-webkit-scrollbar-thumb {
+    background: var(--debate-ink);
+}
+
+.round-result .rr-title {
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--debate-ink);
+    border-bottom: 2px solid var(--debate-ink);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+}
+
+.round-result .rr-row {
+    border: 2px solid var(--debate-ink);
+    border-left-width: 4px;
+    padding: 4px 5px 5px;
+    margin-bottom: 5px;
+    background: var(--debate-paper);
+}
+
+.round-result .rr-row:last-child {
+    margin-bottom: 0;
+}
+
+/* left accent stripe by verdict */
+.round-result .rr-supported   { border-left-color: var(--debate-green); }
+.round-result .rr-misleading  { border-left-color: var(--debate-red); }
+.round-result .rr-unsupported { border-left-color: var(--debate-grey); }
+
+.round-result .rr-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 3px;
+}
+
+.round-result .rr-side {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--debate-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* verdict pill */
+.round-result .rr-pill {
+    flex: 0 0 auto;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 4px;
+    border: 1px solid var(--debate-ink);
+    color: #fff;
+    image-rendering: pixelated;
+}
+
+.round-result .rr-pill-supported   { background: var(--debate-green); color: var(--debate-ink); }
+.round-result .rr-pill-misleading  { background: var(--debate-red); color: #fff; }
+.round-result .rr-pill-unsupported { background: var(--debate-grey); color: #fff; }
+
+/* damage tag */
+.round-result .rr-dmg {
+    flex: 0 0 auto;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 3px;
+    border: 1px solid var(--debate-ink);
+}
+
+.round-result .rr-dmg-dealt { background: #eafbe9; color: #1e6b25; }
+.round-result .rr-dmg-taken { background: #fdeae7; color: #8a241a; }
+
+.round-result .rr-claim {
+    font-size: 7px;
+    line-height: 1.45;
+    color: var(--debate-ink);
+    margin-bottom: 3px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.round-result .rr-rationale {
+    font-size: 7px;
+    line-height: 1.5;
+    color: #404040;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------
+   VERDICT FLASHES (brief full-scene tint/pulse)
+   apply to #scene
+   ---------------------------------------- */
+.flash-supported {
+    animation: flash-supported-kf 0.6s steps(1) 1;
+}
+
+.flash-misleading {
+    animation: flash-misleading-kf 0.6s steps(1) 1;
+}
+
+.flash-unsupported {
+    animation: flash-unsupported-kf 0.6s steps(1) 1;
+}
+
+@keyframes flash-supported-kf {
+    0%   { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.0); }
+    25%  { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.55); }
+    50%  { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.0); }
+    75%  { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.4); }
+    100% { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.0); }
+}
+
+@keyframes flash-misleading-kf {
+    0%   { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.0); }
+    25%  { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.55); }
+    50%  { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.0); }
+    75%  { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.4); }
+    100% { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.0); }
+}
+
+@keyframes flash-unsupported-kf {
+    0%   { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.0); }
+    25%  { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.55); }
+    50%  { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.0); }
+    75%  { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.4); }
+    100% { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.0); }
+}
+
+/* ----------------------------------------
+   SHAKE (recoil / backfire) + HIT FLASH
+   apply to a wizard sprite (#player-wizard / #enemy-wizard)
+   ---------------------------------------- */
+.shake {
+    animation: shake-kf 0.4s steps(2) 2;
+}
+
+@keyframes shake-kf {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-3px, 1px); }
+    40%  { transform: translate(3px, -1px); }
+    60%  { transform: translate(-2px, 2px); }
+    80%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0, 0); }
+}
+
+.hit-flash {
+    animation: hit-flash-kf 0.3s steps(1) 3;
+}
+
+@keyframes hit-flash-kf {
+    0%   { filter: none; }
+    50%  { filter: brightness(0) invert(1); }
+    100% { filter: none; }
+}
+
+/* ----------------------------------------
+   LEADERBOARD SCREEN (matches .screen siblings)
+   ---------------------------------------- */
+.lb-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: var(--debate-paper);
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+.lb-screen .lb-title {
+    font-family: 'GameFont', fantasy;
+    font-size: 12px;
+    color: var(--debate-ink);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 2px solid var(--debate-ink);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    text-align: center;
+    width: 100%;
+}
+
+.lb-list {
+    width: 100%;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.lb-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.lb-list::-webkit-scrollbar-thumb {
+    background: var(--debate-ink);
+}
+
+.lb-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    background: var(--debate-paper);
+    padding: 4px 5px;
+    margin-bottom: 3px;
+    box-shadow: -2px -2px 0 0 #d0d0d0 inset;
+}
+
+.lb-rank {
+    flex: 0 0 18px;
+    text-align: center;
+    color: var(--debate-ink);
+}
+
+.lb-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.lb-score {
+    flex: 0 0 auto;
+    text-align: right;
+    color: var(--youcom-blue);
+}
+
+/* #1 gets the gold treatment */
+.lb-row.lb-first {
+    background: var(--debate-gold);
+    border-color: var(--debate-ink);
+    box-shadow: -2px -2px 0 0 #9c7d1f inset, 2px 2px 0 0 #f0d566 inset;
+}
+
+.lb-row.lb-first .lb-rank,
+.lb-row.lb-first .lb-name,
+.lb-row.lb-first .lb-score {
+    color: var(--debate-ink);
+}
+
+/* current player's row highlight */
+.lb-row.lb-me {
+    border-color: var(--debate-green);
+    box-shadow: 0 0 0 1px var(--debate-green) inset;
+}
+
+.lb-screen .lb-back {
+    margin-top: 6px;
+}

@@ -1,0 +1,10 @@
+{
+  "name": "debate-the-wizard-pixel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Debate the Wizard - pixel Game Boy battle frontend (static, no build)",
+  "scripts": {
+    "build": "echo \"static site - no build step\"",
+    "vercel-build": "echo \"static site - no build step\""
+  }
+}

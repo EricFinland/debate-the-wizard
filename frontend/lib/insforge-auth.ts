@@ -24,6 +24,8 @@ export interface AuthUser {
   email: string;
   name?: string;
   avatar_url?: string;
+  /** True once the email is verified. OAuth users are always verified. */
+  emailVerified: boolean;
 }
 
 type InsforgeClient = ReturnType<typeof createClient>;
@@ -74,6 +76,56 @@ export async function signIn(provider: OAuthProvider): Promise<void> {
   });
 }
 
+/**
+ * Sign up with email + password. Email verification is disabled on this
+ * project, so a session is returned immediately. Resolves to the normalized
+ * AuthUser, or null on the server / when the SDK is unavailable.
+ *
+ * Throws on real auth errors (e.g. email already registered, weak password)
+ * so the calling form can surface the message.
+ */
+export async function signUpEmail(
+  email: string,
+  password: string,
+  name?: string,
+): Promise<AuthUser | null> {
+  const insforge = getInsforge();
+  if (!insforge || !isBrowser()) return null;
+
+  const { data, error } = await insforge.auth.signUp({
+    email,
+    password,
+    ...(name ? { name } : {}),
+    redirectTo: window.location.origin,
+  });
+  if (error) throw new Error(error.message ?? "Sign-up failed");
+
+  const u = (data as { user?: RawUser } | null)?.user;
+  return u ? normalizeUser(u) : getUser();
+}
+
+/**
+ * Sign in with email + password. Resolves to the normalized AuthUser, or null
+ * on the server / when the SDK is unavailable. Throws on bad credentials so
+ * the calling form can surface the message.
+ */
+export async function signInEmail(
+  email: string,
+  password: string,
+): Promise<AuthUser | null> {
+  const insforge = getInsforge();
+  if (!insforge || !isBrowser()) return null;
+
+  const { data, error } = await insforge.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error) throw new Error(error.message ?? "Sign-in failed");
+
+  const u = (data as { user?: RawUser } | null)?.user;
+  return u ? normalizeUser(u) : getUser();
+}
+
 /** Sign the current user out. Safe to call when already signed out. */
 export async function signOut(): Promise<void> {
   const insforge = getInsforge();
@@ -97,18 +149,28 @@ export async function getUser(): Promise<AuthUser | null> {
     const { data } = await insforge.auth.getCurrentUser();
     const u = (data as { user?: RawUser } | null)?.user;
     if (!u || !u.id) return null;
-
-    const meta = u.user_metadata ?? u.metadata ?? {};
-    return {
-      id: u.id,
-      email: u.email ?? "",
-      name: u.name ?? meta.name ?? meta.full_name ?? undefined,
-      avatar_url:
-        u.avatar_url ?? meta.avatar_url ?? meta.picture ?? undefined,
-    };
+    return normalizeUser(u);
   } catch {
     return null;
   }
+}
+
+/**
+ * Map a raw SDK user into the normalized AuthUser shape. Tolerant of small
+ * differences in the SDK's user object (metadata vs. top-level fields) and the
+ * various spellings of the verified flag. OAuth users come back verified.
+ */
+function normalizeUser(u: RawUser): AuthUser {
+  const meta = u.user_metadata ?? u.metadata ?? {};
+  return {
+    id: u.id ?? "",
+    email: u.email ?? "",
+    name: u.name ?? meta.name ?? meta.full_name ?? undefined,
+    avatar_url: u.avatar_url ?? meta.avatar_url ?? meta.picture ?? undefined,
+    emailVerified: Boolean(
+      u.emailVerified ?? u.email_verified ?? u.email_confirmed_at,
+    ),
+  };
 }
 
 /** Loosely-typed raw user from the SDK (shape varies by provider). */
@@ -117,6 +179,9 @@ interface RawUser {
   email?: string;
   name?: string;
   avatar_url?: string;
+  emailVerified?: boolean;
+  email_verified?: boolean;
+  email_confirmed_at?: string | null;
   user_metadata?: Record<string, string | undefined>;
   metadata?: Record<string, string | undefined>;
 }
@@ -202,6 +267,8 @@ export type { Room };
 const insforgeAuth = {
   getInsforge,
   signIn,
+  signUpEmail,
+  signInEmail,
   signOut,
   getUser,
   subscribeRoom,

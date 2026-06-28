@@ -17,7 +17,7 @@ export type Verdict = "supported" | "unsupported" | "misleading";
 export type Side = "A" | "B"; // A = human, B = wizard
 export type Author = "player" | "wizard";
 export type RoomStatus = "lobby" | "active" | "finished";
-export type Difficulty = "novice" | "adept" | "archmage";
+export type Difficulty = "novice" | "adept" | "archmage" | "impossible";
 
 export interface Scores {
   factual_accuracy: number; // 0-10
@@ -257,6 +257,8 @@ export function createDebateClient(
       avatar_url?: string | null;
       won: boolean | null;
       score: number;
+      /** Only verified players land on the public leaderboard. */
+      email_verified: boolean;
     }) => call<RecordMatchResponse>("record-match", "POST", input),
 
     /** Direct access to the pure judge pipeline (rarely needed from the UI). */

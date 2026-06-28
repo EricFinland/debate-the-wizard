@@ -17,6 +17,8 @@ import {
 import {
   getUser,
   signIn as authSignIn,
+  signInEmail as authSignInEmail,
+  signUpEmail as authSignUpEmail,
   signOut as authSignOut,
   type AuthUser,
   type OAuthProvider,
@@ -82,8 +84,12 @@ export interface UseDebate {
 
   // --- auth / profile ---
   user: AuthUser | null;
+  /** True when the logged-in user's email is verified (OAuth users always). */
+  emailVerified: boolean;
   /** Persistent win/loss/score stats for the logged-in player (null if anon). */
   profile: Profile | null;
+  /** Last email sign-in/up error, for AuthBar. Cleared on success. */
+  authError: string | null;
 
   // --- wizard flavor ---
   taunt: string | null;
@@ -99,6 +105,10 @@ export interface UseDebate {
     /** Spectator watch: fetch a room snapshot. */
     getRoom: (input: { room_id: string }) => Promise<GetRoomResponse>;
     signIn: (provider?: OAuthProvider) => Promise<void>;
+    /** Email + password sign-in; refreshes user on success, sets authError on failure. */
+    signInEmail: (email: string, password: string) => Promise<void>;
+    /** Email + password sign-up; refreshes user on success, sets authError on failure. */
+    signUpEmail: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
     dismissVerdict: () => void;
     clearError: () => void;
@@ -147,6 +157,7 @@ export function useDebate(): UseDebate {
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [taunt, setTaunt] = useState<string | null>(null);
   const [wizardCaught, setWizardCaught] = useState(false);
 
@@ -266,6 +277,7 @@ export function useDebate(): UseDebate {
               avatar_url: user.avatar_url ?? null,
               won,
               score: you,
+              email_verified: Boolean(user.emailVerified),
             });
             if (res?.profile && mountedRef.current) setProfile(res.profile);
           } catch {
@@ -449,8 +461,10 @@ export function useDebate(): UseDebate {
           });
         }
       }
-    } catch (e) {
-      setError(messageFromError(e));
+    } catch {
+      // Leaderboard is non-critical — never surface its failures as a blocking
+      // error toast (it was leaking raw gateway HTML). Just show it empty.
+      setLeaderboard([]);
     }
   }, [client, user, profile]);
 
@@ -470,6 +484,30 @@ export function useDebate(): UseDebate {
       // OAuth redirects away; user is picked up on the next mount.
     } catch (e) {
       setError(messageFromError(e));
+    }
+  }, []);
+
+  const signInEmail = useCallback(async (email: string, password: string) => {
+    setAuthError(null);
+    try {
+      await authSignInEmail(email, password);
+      // Refresh the canonical user (carries emailVerified) after a session lands.
+      const u = await getUser();
+      if (mountedRef.current) setUser(u);
+    } catch (e) {
+      if (mountedRef.current) setAuthError(messageFromError(e));
+    }
+  }, []);
+
+  const signUpEmail = useCallback(async (email: string, password: string) => {
+    setAuthError(null);
+    try {
+      await authSignUpEmail(email, password);
+      // Verification is off, so a session lands immediately; refresh the user.
+      const u = await getUser();
+      if (mountedRef.current) setUser(u);
+    } catch (e) {
+      if (mountedRef.current) setAuthError(messageFromError(e));
     }
   }, []);
 
@@ -509,7 +547,9 @@ export function useDebate(): UseDebate {
     sourceCount,
 
     user,
+    emailVerified: Boolean(user?.emailVerified),
     profile,
+    authError,
 
     taunt,
     wizardCaught,
@@ -522,6 +562,8 @@ export function useDebate(): UseDebate {
       listRooms,
       getRoom,
       signIn,
+      signInEmail,
+      signUpEmail,
       signOut,
       dismissVerdict,
       clearError,

@@ -48,6 +48,9 @@ export default async function (req: Request): Promise<Response> {
   const avatar_url =
     typeof body?.avatar_url === "string" && body.avatar_url.trim() ? body.avatar_url.trim() : null;
 
+  // email_verified: only ever flips `verified` from false -> true, never back.
+  const email_verified = body?.email_verified === true;
+
   const wInc = won === true ? 1 : 0;
   const lInc = won === false ? 1 : 0;
   const tInc = won === null ? 1 : 0;
@@ -66,6 +69,8 @@ export default async function (req: Request): Promise<Response> {
         losses: (Number(cur.losses) || 0) + lInc,
         ties: (Number(cur.ties) || 0) + tInc,
         total_score: (Number(cur.total_score) || 0) + score,
+        // never overwrite an existing true with false: verified = existing OR email_verified
+        verified: Boolean(cur.verified) || email_verified,
         updated_at: new Date().toISOString(),
       };
       if (display_name !== null) patch.display_name = display_name;
@@ -90,6 +95,7 @@ export default async function (req: Request): Promise<Response> {
             losses: lInc,
             ties: tInc,
             total_score: score,
+            verified: email_verified,
             updated_at: new Date().toISOString(),
           },
         ]);
@@ -108,6 +114,8 @@ export default async function (req: Request): Promise<Response> {
           losses: (Number(cur.losses) || 0) + lInc,
           ties: (Number(cur.ties) || 0) + tInc,
           total_score: (Number(cur.total_score) || 0) + score,
+          // never overwrite an existing true with false: verified = existing OR email_verified
+          verified: Boolean(cur.verified) || email_verified,
           updated_at: new Date().toISOString(),
         };
         if (display_name !== null) patch.display_name = display_name;

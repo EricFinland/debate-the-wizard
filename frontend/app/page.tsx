@@ -93,6 +93,7 @@ export default function Page() {
     sourceCount,
     user,
     profile,
+    authError,
     taunt,
     wizardCaught,
     actions,
@@ -167,20 +168,34 @@ export default function Page() {
   const startWatching = useCallback(
     async (roomId: string) => {
       stopPolling();
+      setSpectateState(null);
+      // Validate the room exists BEFORE taking over the screen. A stale or bad
+      // ?spectate=/?recap= link would otherwise strand the user on a near-empty
+      // page — instead we just fall back to the picker.
+      let first: GetRoomResponse | null = null;
+      try {
+        first = await specClient.getRoom({ room_id: roomId });
+      } catch {
+        first = null;
+      }
+      if (!first || !first.room) {
+        setWatchingId(null);
+        setPickerMode("play");
+        return;
+      }
+      setSpectateState(first);
       setWatchingId(roomId);
       setPickerMode("spectate");
-      setSpectateState(null);
+      if (first.room.status === "finished") return; // finished: nothing left to poll
       const tick = async () => {
         try {
           const data = await specClient.getRoom({ room_id: roomId });
           setSpectateState(data);
-          // Stop polling once the duel is over — nothing left to update.
           if (data.room?.status === "finished") stopPolling();
         } catch {
           /* keep last good snapshot on a transient failure */
         }
       };
-      void tick();
       pollRef.current = setInterval(tick, POLL_MS);
     },
     [specClient, stopPolling],
@@ -205,6 +220,9 @@ export default function Page() {
     const target = spectate ?? recapId;
     if (target) {
       void startWatching(target);
+      // Clean the URL so a reload doesn't re-trigger watch mode (and never
+      // strands the user on a blank watch page).
+      window.history.replaceState({}, "", window.location.pathname);
     }
     // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -261,6 +279,22 @@ export default function Page() {
   const theaterActor: "you" | "wizard" =
     turnActor === "wizard" || wizardThinking ? "wizard" : "you";
 
+  // Plain-language "who's winning" + "what's happening" for the arena header.
+  const lead = scores.you - scores.wizard;
+  const leaderText =
+    lead > 0
+      ? `You're winning ${scores.you}–${scores.wizard}`
+      : lead < 0
+        ? `The Wizard leads ${scores.wizard}–${scores.you}`
+        : `Tied ${scores.you}–${scores.wizard}`;
+  const leaderClass =
+    lead > 0 ? "text-emerald-300" : lead < 0 ? "text-rose-300" : "text-zinc-300";
+  const turnStatus = wizardThinking
+    ? "🧙 The Wizard is responding…"
+    : busy
+      ? "⚖️ Fact-checking your claim against You.com…"
+      : "Your turn — make your claim below";
+
   return (
     <main className="relative min-h-screen overflow-x-hidden">
       {/* ---- Title banner + account chip ---- */}
@@ -270,7 +304,10 @@ export default function Page() {
             user={user ?? null}
             profile={authProfile}
             onSignIn={actions.signIn}
+            onEmailSignIn={actions.signInEmail}
+            onEmailSignUp={actions.signUpEmail}
             onSignOut={actions.signOut}
+            authError={authError}
           />
         </div>
 
@@ -406,6 +443,26 @@ export default function Page() {
                 exit="hidden"
                 className="flex flex-col gap-6"
               >
+                {/* At-a-glance: the motion, the round, who's winning, whose turn */}
+                <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/30 p-4 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-arcane-200/70">
+                    The Motion · Round {round} of {roundsTotal}
+                  </p>
+                  <h2 className="font-display text-lg leading-snug text-zinc-100 sm:text-xl">
+                    {room?.topic ?? "The duel"}
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    You argue <span className="font-semibold text-rune">FOR</span>
+                    {" · "}the Wizard argues{" "}
+                    <span className="font-semibold text-arcane-200">AGAINST</span>
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
+                    <span className={cn("font-bold", leaderClass)}>{leaderText}</span>
+                    <span className="text-zinc-600">·</span>
+                    <span className="text-zinc-300">{turnStatus}</span>
+                  </div>
+                </div>
+
                 <Scoreboard
                   you={scores.you}
                   wizard={scores.wizard}

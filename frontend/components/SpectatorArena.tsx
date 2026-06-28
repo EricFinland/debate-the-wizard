@@ -18,6 +18,23 @@ export interface SpectatorArenaProps {
 }
 
 export function SpectatorArena({ state, onLeave }: SpectatorArenaProps) {
+  // Never render blank: show a loading card until the first snapshot arrives.
+  if (!state) {
+    return (
+      <div className="relative mx-auto w-full max-w-3xl px-4 pb-24 pt-10 text-center sm:px-6">
+        <button
+          type="button"
+          onClick={onLeave}
+          className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-sm font-medium text-slate-300 hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+        >
+          <span aria-hidden>←</span> Leave
+        </button>
+        <div className="rounded-2xl border border-white/10 bg-black/30 px-6 py-12 text-zinc-400">
+          Summoning the duel…
+        </div>
+      </div>
+    )
+  }
   const room = state?.room ?? null
   const scoreA = state?.scores.A ?? 0
   const scoreB = state?.scores.B ?? 0
