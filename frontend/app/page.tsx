@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, MotionGlobalConfig } from "framer-motion";
 import { useDebate } from "@/hooks/useDebate";
 import { cn } from "@/lib/ui";
+
+// framer-motion's hardware-accelerated (WAAPI) path throws "duration must be
+// non-negative" on this Next 14 / React 18 setup, which left animated elements
+// stuck at their initial opacity:0 (invisible content). Render final states
+// instead — everything stays visible and interactive; we lose the slide-ins.
+MotionGlobalConfig.skipAnimations = true;
 
 import TopicPicker from "@/components/TopicPicker";
 import Leaderboard from "@/components/Leaderboard";
