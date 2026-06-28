@@ -1,0 +1,27 @@
+# deps
+node_modules/
+.pnp/
+
+# env / secrets
+.env
+.env.local
+*.local
+
+# insforge link / local state
+.insforge/
+insforge.json.local
+
+# build
+dist/
+build/
+.vercel/
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
