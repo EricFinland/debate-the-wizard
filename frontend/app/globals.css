@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Cinzel", Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+
+  --arena-950: #0a0612;
+  --arena-900: #120a22;
+  --arena-800: #1f1138;
+
+  --rune: #f4c95d;
+  --arcane: #a855f7;
+  --supported: #34d399;
+  --misleading: #fb7185;
+  --unsupported: #a1a1aa;
+  --pending: #c4b5fd;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-arena-950 text-zinc-100 antialiased;
+    background-image:
+      radial-gradient(1200px 800px at 50% -10%, rgba(109, 40, 217, 0.30), transparent 60%),
+      radial-gradient(900px 600px at 90% 110%, rgba(244, 201, 93, 0.08), transparent 55%),
+      linear-gradient(180deg, #0a0612 0%, #120a22 100%);
+    background-attachment: fixed;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+
+  ::selection {
+    background: rgba(168, 85, 247, 0.35);
+    color: #fff;
+  }
+}
+
+@layer utilities {
+  /* Rune-gold / arcane-violet glow text */
+  .text-glow-rune {
+    text-shadow: 0 0 18px rgba(244, 201, 93, 0.55);
+  }
+  .text-glow-arcane {
+    text-shadow: 0 0 18px rgba(168, 85, 247, 0.6);
+  }
+
+  .glass {
+    @apply bg-white/[0.035] backdrop-blur-md border border-white/10;
+  }
+
+  .glass-rune {
+    background: linear-gradient(135deg, rgba(244, 201, 93, 0.10), rgba(244, 201, 93, 0.02));
+    @apply backdrop-blur-md border border-rune/25;
+  }
+
+  .glass-arcane {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(168, 85, 247, 0.03));
+    @apply backdrop-blur-md border border-arcane/30;
+  }
+
+  /* Animated gradient text for the title */
+  .text-arcane-shimmer {
+    background: linear-gradient(90deg, #f4c95d, #a855f7, #b98bff, #f4c95d);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+
+  .rune-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(244, 201, 93, 0.5),
+      rgba(168, 85, 247, 0.5),
+      transparent
+    );
+  }
+}
+
+/* Custom scrollbar — arcane themed */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.5) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.55), rgba(109, 40, 217, 0.55));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.85), rgba(109, 40, 217, 0.85));
+  background-clip: content-box;
+}
