@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/wizard.css">
     <link rel="stylesheet" href="css/screens.css">
     <link rel="stylesheet" href="css/battle.css">
+    <link rel="stylesheet" href="css/debate.css">
 </head>
 
 <body>
@@ -23,6 +24,7 @@
                 <div class="mm-menu">
                     <div class="mm-opt" id="mm-continue" data-action="continue">CONTINUE</div>
                     <div class="mm-opt" id="mm-newgame" data-action="newgame">NEW GAME</div>
+                    <div class="mm-opt" id="mm-leaderboard" data-action="leaderboard">LEADERBOARD</div>
                 </div>
             </section>
 
@@ -123,6 +125,15 @@
                     <div id="text-content">...</div>
                     <div id="advance-arrow" class="hidden">&#9660;</div>
 
+                    <!-- argument / claim input (shown during STATE YOUR CLAIM + FIGHT) -->
+                    <div id="debate-input-wrap" class="debate-input hidden">
+                        <textarea id="debate-arg-input" maxlength="280" placeholder="CAST YOUR ARGUMENT..." autocomplete="off"></textarea>
+                        <button id="debate-submit" class="debate-submit" type="button">CAST</button>
+                    </div>
+
+                    <!-- You.com citation(s) for the latest verdict -->
+                    <div id="citation-box" class="citation-box hidden"></div>
+
                     <div id="action-menu" class="hidden">
                         <div class="menu-item" data-act="fight">FIGHT</div>
                         <div class="menu-item" data-act="pkmn">WIZARD</div>
@@ -132,6 +143,13 @@
 
                     <div id="move-menu" class="hidden"></div>
                 </div>
+            </section>
+
+            <!-- ============ LEADERBOARD ============ -->
+            <section id="leaderboard-screen" class="screen lb-screen hidden">
+                <div class="lb-title">CHAMPIONS</div>
+                <div id="lb-list" class="lb-list"></div>
+                <div class="pixel-btn lb-back" id="lb-quit">&#9664; QUIT TO TITLE</div>
             </section>
 
         </div>
@@ -144,6 +162,8 @@
     <script src="js/screen-manager.js"></script>
     <script src="js/registration.js"></script>
     <script src="js/menu.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/leaderboard.js"></script>
     <script src="js/battle.js"></script>
     <script src="js/main.js"></script>
 </body>

@@ -6,7 +6,14 @@
     function initMainMenu() {
         const continueOpt = document.getElementById('mm-continue');
         const newGameOpt = document.getElementById('mm-newgame');
+        const leaderboardOpt = document.getElementById('mm-leaderboard');
         const nav = KeyboardNav.create({ columns: 1 });
+
+        function menuItems() {
+            const items = [continueOpt, newGameOpt];
+            if (leaderboardOpt) items.push(leaderboardOpt);
+            return items;
+        }
 
         function refresh() {
             if (Storage.hasSave()) {
@@ -14,7 +21,7 @@
             } else {
                 continueOpt.classList.add('disabled');
             }
-            nav.setItems([continueOpt, newGameOpt], 1);
+            nav.setItems(menuItems(), 1);
         }
         ScreenManager.onShow('MAIN_MENU', refresh);
 
@@ -29,6 +36,12 @@
             ScreenManager.show('REGISTRATION');
         });
 
+        if (leaderboardOpt) {
+            leaderboardOpt.addEventListener('click', () => {
+                ScreenManager.show('LEADERBOARD');
+            });
+        }
+
         document.addEventListener('keydown', event => {
             if (ScreenManager.current() !== 'MAIN_MENU') return;
             nav.handleKey(event);
@@ -40,6 +53,7 @@
         Registration.init();
         Menu.init();
         Battle.init();
+        Leaderboard.init();
         ScreenManager.show('MAIN_MENU');
     });
 })();

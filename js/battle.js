@@ -1,34 +1,43 @@
 /* ========================================
-   Battle - turn-based wizard duel (player vs bot)
+   Battle - debate-driven wizard duel (player vs the wizard)
+   Powered by the live You.com + Claude backend via window.Api.
+   HP = debate score. Player argues FOR the claim; the wizard argues AGAINST.
+   Visual helpers (projectile, updateHp, say, waitForClick, centerOf, HP color
+   thresholds) are preserved from the original combat prototype.
    ======================================== */
 
 const Battle = (() => {
-    /* --- spell definitions --- */
-    const MOVES = {
-        fireball:   { name: 'FIREBALL',   min: 18, max: 26, color: '#ff7a2e', heal: false },
-        frost:      { name: 'FROST SHARD', min: 14, max: 20, color: '#5ad6ff', heal: false },
-        arcane:     { name: 'ARCANE BOLT', min: 16, max: 24, color: '#b06bff', heal: false },
-        heal:       { name: 'HEAL',        min: 18, max: 26, color: '#5ad66b', heal: true }
-    };
-    const MOVE_ORDER = ['fireball', 'frost', 'arcane', 'heal'];
-
-    /* --- difficulty tuning (cosmetic color comes from Wizard.enemyColorFor) --- */
+    /* --- difficulty tuning (cosmetic color comes from Wizard.enemyColorFor) ---
+       The backend decides verdicts; dmgMult only scales how hard the wizard hits. */
     const DIFFICULTY = {
-        easy:       { label: 'EASY',       hp: 70,  dmgMult: 0.7, level: 3,  smart: false, fumble: 0.25 },
-        medium:     { label: 'MEDIUM',     hp: 95,  dmgMult: 1.0, level: 6,  smart: false, fumble: 0.10 },
-        hard:       { label: 'HARD',       hp: 115, dmgMult: 1.2, level: 9,  smart: true,  fumble: 0.05 },
-        impossible: { label: 'IMPOSSIBLE', hp: 150, dmgMult: 1.6, level: 13, smart: true,  fumble: 0.0 }
+        easy:       { label: 'EASY',       dmgMult: 0.8, level: 3,  backend: 'novice' },
+        medium:     { label: 'MEDIUM',     dmgMult: 1.0, level: 6,  backend: 'adept' },
+        hard:       { label: 'HARD',       dmgMult: 1.2, level: 9,  backend: 'archmage' },
+        impossible: { label: 'IMPOSSIBLE', dmgMult: 1.5, level: 13, backend: 'impossible' }
     };
 
-    const PLAYER_MAX_HP = 100;
+    const START_HP = 100;
     const PLAYER_LEVEL = 5;
+
+    /* spell tint per verdict (reuse projectile FX) */
+    const CAST_COLOR = '#b06bff';      // supported -> arcane bolt
+    const FIZZLE_COLOR = '#9a9a9a';    // unsupported -> weak grey
 
     let player = null;
     let enemy = null;
     let busy = false;
     let awaitingContinue = null; // resolver fn while waiting for a click
+
+    // debate state
+    let roomId = null;
+    let round = 1;
+    let roundsTotal = 3;
+    let mappedDifficulty = 'adept';
+    let lastCitations = [];      // citations from the most recent turn (for PACK)
+    let lastPlayerArg = '';      // fed to advance-wizard as opponent_argument
+    let argResolver = null;      // resolver while waiting on the text input
+
     let actionNav = null;
-    let moveNav = null;
 
     // DOM refs (resolved on init)
     let els = {};
@@ -50,10 +59,13 @@ const Battle = (() => {
             text: document.getElementById('text-content'),
             arrow: document.getElementById('advance-arrow'),
             actionMenu: document.getElementById('action-menu'),
-            moveMenu: document.getElementById('move-menu')
+            moveMenu: document.getElementById('move-menu'),
+            inputWrap: document.getElementById('debate-input-wrap'),
+            argInput: document.getElementById('debate-arg-input'),
+            submitBtn: document.getElementById('debate-submit'),
+            citationBox: document.getElementById('citation-box')
         };
         actionNav = KeyboardNav.create({ columns: 2 });
-        moveNav = KeyboardNav.create({ columns: 2 });
 
         // action menu buttons
         els.actionMenu.querySelectorAll('.menu-item').forEach(item => {
@@ -63,31 +75,41 @@ const Battle = (() => {
             });
         });
 
-        // click to advance when a message is waiting
-        els.dialog.addEventListener('click', () => {
+        // click to advance when a message is waiting (ignore clicks on the input UI)
+        els.dialog.addEventListener('click', event => {
+            if (els.inputWrap.contains(event.target)) return;
             advanceDialog();
+        });
+
+        // argument submit
+        els.submitBtn.addEventListener('click', event => {
+            event.stopPropagation();
+            submitArg();
+        });
+        els.argInput.addEventListener('keydown', event => {
+            // Enter submits; Shift+Enter inserts a newline
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                submitArg();
+            }
         });
 
         document.addEventListener('keydown', event => {
             if (ScreenManager.current() !== 'BATTLE') return;
+            // while typing an argument, let the textarea own the keyboard
+            if (!els.inputWrap.classList.contains('hidden')) return;
             if (awaitingContinue && (event.key === 'Enter' || event.key === ' ')) {
                 event.preventDefault();
                 advanceDialog();
                 return;
             }
-            if (!els.actionMenu.classList.contains('hidden') && actionNav.handleKey(event)) return;
-            if (!els.moveMenu.classList.contains('hidden')) {
-                if (event.key === 'Escape') {
-                    event.preventDefault();
-                    showActionMenu();
-                    return;
-                }
-                moveNav.handleKey(event);
+            if (!els.actionMenu.classList.contains('hidden')) {
+                actionNav.handleKey(event);
             }
         });
     }
 
-    /* ---------- helpers ---------- */
+    /* ---------- helpers (preserved visual layer) ---------- */
     const delay = ms => new Promise(r => setTimeout(r, ms));
     const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -151,29 +173,122 @@ const Battle = (() => {
         });
     }
 
+    /* one-shot CSS class animation (shake / hit-flash); resolves after ms */
+    function pulse(el, cls, ms) {
+        return new Promise(resolve => {
+            el.classList.remove(cls);
+            void el.offsetWidth;
+            el.classList.add(cls);
+            setTimeout(() => {
+                el.classList.remove(cls);
+                resolve();
+            }, ms);
+        });
+    }
+
+    function flashScene(verdict) {
+        const cls = 'flash-' + verdict;
+        els.scene.classList.remove('flash-supported', 'flash-misleading', 'flash-unsupported');
+        void els.scene.offsetWidth;
+        els.scene.classList.add(cls);
+        setTimeout(() => els.scene.classList.remove(cls), 650);
+    }
+
+    /* ---------- argument input ---------- */
+    function askForText(placeholder) {
+        return new Promise(resolve => {
+            els.actionMenu.classList.add('hidden');
+            els.citationBox.classList.add('hidden');
+            els.arrow.classList.add('hidden');
+            els.argInput.value = '';
+            els.argInput.placeholder = placeholder || 'TYPE HERE...';
+            els.inputWrap.classList.remove('hidden');
+            els.submitBtn.disabled = false;
+            argResolver = resolve;
+            setTimeout(() => els.argInput.focus(), 30);
+        });
+    }
+
+    function submitArg() {
+        if (!argResolver) return;
+        const val = els.argInput.value.trim();
+        if (!val) {
+            els.argInput.focus();
+            return;
+        }
+        const fn = argResolver;
+        argResolver = null;
+        els.inputWrap.classList.add('hidden');
+        els.submitBtn.disabled = true;
+        fn(val);
+    }
+
+    /* ---------- citations (You.com sources) ---------- */
+    function showCitations(citations) {
+        lastCitations = Array.isArray(citations) ? citations.slice(0, 2) : [];
+        els.citationBox.innerHTML = '';
+        if (!lastCitations.length) {
+            els.citationBox.classList.add('hidden');
+            return;
+        }
+        const tag = document.createElement('div');
+        tag.className = 'youcom-tag';
+        tag.textContent = 'YOU.COM SOURCES';
+        els.citationBox.appendChild(tag);
+
+        lastCitations.forEach(c => {
+            const title = document.createElement('span');
+            title.className = 'citation-title';
+            title.textContent = c.title || 'Source';
+            els.citationBox.appendChild(title);
+
+            if (c.url) {
+                const dom = document.createElement('span');
+                dom.className = 'citation-domain';
+                let label = c.url;
+                try { label = new URL(c.url).hostname.replace(/^www\./, ''); } catch (e) { /* keep raw */ }
+                dom.textContent = label;
+                dom.addEventListener('click', () => window.open(c.url, '_blank', 'noopener'));
+                els.citationBox.appendChild(dom);
+            }
+            if (c.snippet) {
+                const snip = document.createElement('span');
+                snip.className = 'citation-snippet';
+                snip.textContent = c.snippet;
+                els.citationBox.appendChild(snip);
+            }
+        });
+        els.citationBox.classList.remove('hidden');
+    }
+
     /* ---------- battle setup ---------- */
     function start(difficulty) {
         const save = Storage.load() || {};
         const cfg = DIFFICULTY[difficulty] || DIFFICULTY.medium;
+        mappedDifficulty = cfg.backend;
         const enemyColor = Wizard.enemyColorFor(difficulty);
 
         player = {
             name: save.name || 'WIZARD',
             color: save.color || 'red',
             level: PLAYER_LEVEL,
-            hp: PLAYER_MAX_HP,
-            maxHp: PLAYER_MAX_HP
+            hp: START_HP,
+            maxHp: START_HP
         };
         enemy = {
             name: 'IGRIS',
             color: enemyColor,
             level: cfg.level,
-            hp: cfg.hp,
-            maxHp: cfg.hp,
-            dmgMult: cfg.dmgMult,
-            smart: cfg.smart,
-            fumble: cfg.fumble
+            hp: START_HP,
+            maxHp: START_HP,
+            dmgMult: cfg.dmgMult
         };
+
+        roomId = null;
+        round = 1;
+        roundsTotal = 3;
+        lastCitations = [];
+        lastPlayerArg = '';
 
         // render wizards
         Wizard.applyColor(els.playerWizard, player.color);
@@ -192,152 +307,327 @@ const Battle = (() => {
         // reset UI
         els.actionMenu.classList.add('hidden');
         els.moveMenu.classList.add('hidden');
+        els.inputWrap.classList.add('hidden');
+        els.citationBox.classList.add('hidden');
         els.arrow.classList.add('hidden');
         awaitingContinue = null;
+        argResolver = null;
         busy = false;
 
         ScreenManager.show('BATTLE');
-
-        say('A wild ' + enemy.name + ' appears!');
-        waitForClick().then(showActionMenu);
+        beginDebate();
     }
 
-    /* ---------- player turn ---------- */
+    async function beginDebate() {
+        say('The ' + enemy.name + ' bars your path. STATE YOUR CLAIM to begin the duel!');
+        const topic = await askForText('STATE YOUR CLAIM...');
+
+        say('Opening the arena around "' + topic + '"...');
+        try {
+            const data = await Api.createRoom({
+                topic: topic,
+                difficulty: mappedDifficulty,
+                name: player.name
+            });
+            roomId = data && data.room && data.room.id;
+            if (data && data.room && data.room.rounds_total) {
+                roundsTotal = data.room.rounds_total;
+            }
+            if (!roomId) throw new Error('no room id');
+        } catch (err) {
+            say('The arcane connection wavered... try stating your claim again.');
+            await waitForClick();
+            return beginDebate();
+        }
+
+        say('You argue FOR. ' + enemy.name + ' argues AGAINST. ' + roundsTotal + ' rounds. Choose FIGHT to cast an argument!');
+        await waitForClick();
+        showActionMenu();
+    }
+
+    /* ---------- action menu ---------- */
     function showActionMenu() {
         els.moveMenu.classList.add('hidden');
+        els.inputWrap.classList.add('hidden');
         els.actionMenu.classList.remove('hidden');
-        say('What will ' + player.name + ' do?');
+        say('ROUND ' + round + ' of ' + roundsTotal + ' — what will ' + player.name + ' do?');
         actionNav.setItems(els.actionMenu.querySelectorAll('.menu-item'), 2);
     }
 
     function onAction(act) {
         if (busy) return;
         if (act === 'fight') {
-            showMoveMenu();
+            runRound();
         } else if (act === 'run') {
             els.actionMenu.classList.add('hidden');
-            say(player.name + ' fled the duel...');
+            els.citationBox.classList.add('hidden');
+            say(player.name + ' fled the debate...');
             waitForClick().then(() => ScreenManager.show('MENU'));
-        } else {
-            // WIZARD / PACK kept from the original layout, not wired yet
+        } else if (act === 'pack') {
+            // re-show the latest You.com citations
             els.actionMenu.classList.add('hidden');
-            say('Not available yet.');
+            if (lastCitations.length) {
+                showCitations(lastCitations);
+                say('The last sources from You.com:');
+            } else {
+                say('No sources gathered yet. Cast an argument first!');
+            }
+            waitForClick().then(showActionMenu);
+        } else {
+            // WIZARD slot: show the duel status
+            els.actionMenu.classList.add('hidden');
+            say(player.name + ' Lv' + player.level + ' (' + Math.ceil(player.hp) + ' HP)  vs  '
+                + enemy.name + ' Lv' + enemy.level + ' (' + Math.ceil(enemy.hp) + ' HP)');
             waitForClick().then(showActionMenu);
         }
     }
 
-    function showMoveMenu() {
-        els.actionMenu.classList.add('hidden');
-        els.moveMenu.classList.remove('hidden');
-        els.moveMenu.innerHTML = '';
-        MOVE_ORDER.forEach(key => {
-            const div = document.createElement('div');
-            div.className = 'move-item';
-            div.textContent = MOVES[key].name;
-            div.addEventListener('click', event => {
-                event.stopPropagation();
-                playerMove(key);
-            });
-            els.moveMenu.appendChild(div);
-        });
-        const back = document.createElement('div');
-        back.className = 'move-back';
-        back.textContent = '◀ BACK';
-        back.addEventListener('click', event => {
-            event.stopPropagation();
-            showActionMenu();
-        });
-        els.moveMenu.appendChild(back);
-        moveNav.setItems(els.moveMenu.querySelectorAll('.move-item, .move-back'), 2);
-    }
-
-    async function playerMove(key) {
+    /* ---------- a full round: player turn then wizard turn ---------- */
+    async function runRound() {
         if (busy) return;
         busy = true;
-        els.moveMenu.classList.add('hidden');
-        await performMove('player', key);
-        if (enemy.hp <= 0) return endBattle(true);
-        await enemyTurn();
-        if (player.hp <= 0) return endBattle(false);
+        els.actionMenu.classList.add('hidden');
+        els.citationBox.classList.add('hidden');
+
+        // ----- PLAYER TURN -----
+        say('Cast your argument FOR the claim...');
+        const argument = await askForText('CAST YOUR ARGUMENT...');
+        lastPlayerArg = argument;
+
+        say('The crowd weighs your words...');
+        let claim;
+        try {
+            const res = await Api.submitArgument(roomId, round, argument);
+            claim = res && res.claim ? res.claim : res;
+            showCitations((res && res.citations) || (claim && claim.citations) || []);
+        } catch (err) {
+            say('The arcane connection wavered... cast your argument again.');
+            await waitForClick();
+            busy = false;
+            return showActionMenu();
+        }
+
+        await resolvePlayerVerdict(claim);
+        if (enemy.hp <= 0) return endBattle();
+
+        // ----- WIZARD TURN -----
+        say(enemy.name + ' conjures a rebuttal...');
+        let wzClaim;
+        try {
+            const res = await Api.advanceWizard(roomId, round, lastPlayerArg);
+            wzClaim = res && res.claim ? res.claim : res;
+            showCitations((res && res.citations) || (wzClaim && wzClaim.citations) || []);
+        } catch (err) {
+            // wizard turn failed: don't punish the player, just move on
+            say('The ' + enemy.name + "'s spell sputtered out in the static...");
+            await waitForClick();
+            await advanceRound();
+            return;
+        }
+
+        await resolveWizardVerdict(wzClaim);
+        if (player.hp <= 0) return endBattle();
+
+        await advanceRound();
+    }
+
+    async function advanceRound() {
+        round++;
         busy = false;
+        if (round > roundsTotal) {
+            return endBattle();
+        }
         showActionMenu();
     }
 
-    /* ---------- enemy turn (AI scaled by difficulty) ---------- */
-    async function enemyTurn() {
-        let key;
-        if (Math.random() < enemy.fumble) {
-            say(enemy.name + ' fumbled its spell!');
+    /* ---------- verdict -> damage + animation (player casting) ---------- */
+    async function resolvePlayerVerdict(claim) {
+        const verdict = (claim && claim.verdict) || 'unsupported';
+        const rationale = (claim && claim.rationale) || '';
+        flashScene(verdict);
+
+        if (verdict === 'supported') {
+            const dmg = rand(22, 30);
+            els.playerWizard.classList.add('lunge');
+            const animP = Wizard.playState(els.playerWizard, 'attack', 700);
+            await delay(200);
+            els.playerWizard.classList.remove('lunge');
+            await projectile(els.playerWizard, els.enemyWizard, CAST_COLOR);
+            enemy.hp = Math.max(0, enemy.hp - dmg);
+            updateHp('enemy');
+            pulse(els.enemyWizard, 'hit-flash', 320);
             await Wizard.playState(els.enemyWizard, 'hurt', 360);
-            await delay(500);
-            return;
-        }
-        if (enemy.smart && enemy.hp < enemy.maxHp * 0.3 && Math.random() < 0.7) {
-            key = 'heal';
+            await animP;
+            say('SUPPORTED! Your spell strikes for ' + dmg + '! ' + rationale);
+        } else if (verdict === 'misleading') {
+            // BACKFIRE on the player
+            const dmg = rand(18, 26);
+            await projectile(els.playerWizard, els.playerWizard, FIZZLE_COLOR);
+            player.hp = Math.max(0, player.hp - dmg);
+            updateHp('player');
+            await Promise.all([
+                pulse(els.playerWizard, 'shake', 400),
+                Wizard.playState(els.playerWizard, 'hurt', 360)
+            ]);
+            say('MISLEADING! Your claim was misleading and backfires for ' + dmg + '! ' + rationale);
         } else {
-            const attacks = ['fireball', 'frost', 'arcane'];
-            key = attacks[rand(0, attacks.length - 1)];
+            // unsupported -> fizzle, tiny/no damage
+            const dmg = rand(0, 8);
+            const animP = Wizard.playState(els.playerWizard, 'attack', 500);
+            await projectile(els.playerWizard, els.enemyWizard, FIZZLE_COLOR);
+            if (dmg > 0) {
+                enemy.hp = Math.max(0, enemy.hp - dmg);
+                updateHp('enemy');
+            }
+            await animP;
+            say('UNSUPPORTED — your claim fizzled (' + dmg + '). ' + rationale);
         }
-        await performMove('enemy', key);
+        await waitForClick();
     }
 
-    /* ---------- shared move resolution ---------- */
-    async function performMove(side, key) {
-        const move = MOVES[key];
-        const isPlayer = side === 'player';
-        const attacker = isPlayer ? player : enemy;
-        const target = isPlayer ? enemy : player;
-        const attackerEl = isPlayer ? els.playerWizard : els.enemyWizard;
-        const targetEl = isPlayer ? els.enemyWizard : els.playerWizard;
+    /* ---------- verdict -> damage + animation (wizard casting) ---------- */
+    async function resolveWizardVerdict(claim) {
+        const verdict = (claim && claim.verdict) || 'unsupported';
+        const rationale = (claim && claim.rationale) || '';
+        const taunt = (claim && claim.taunt) || '';
+        flashScene(verdict);
 
-        say(attacker.name + ' used ' + move.name + '!');
-
-        attackerEl.classList.add('lunge');
-        const animP = Wizard.playState(attackerEl, 'attack', 700);
-        await delay(220);
-        attackerEl.classList.remove('lunge');
-
-        if (move.heal) {
-            await animP;
-            const amount = rand(move.min, move.max);
-            attacker.hp = Math.min(attacker.maxHp, attacker.hp + amount);
-            updateHp(side);
-            say(attacker.name + ' restored ' + amount + ' HP!');
-            await delay(700);
-            return;
+        if (taunt) {
+            say(enemy.name + ': "' + taunt + '"');
+            await waitForClick();
         }
 
-        await projectile(attackerEl, targetEl, move.color);
-
-        let dmg = rand(move.min, move.max);
-        if (!isPlayer) dmg = Math.round(dmg * attacker.dmgMult);
-        const crit = Math.random() < 0.1;
-        if (crit) dmg = Math.round(dmg * 1.5);
-
-        target.hp = Math.max(0, target.hp - dmg);
-        updateHp(isPlayer ? 'enemy' : 'player');
-        await Wizard.playState(targetEl, 'hurt', 360);
-        await animP;
-
-        say(crit ? 'A critical hit! ' + dmg + ' damage!' : target.name + ' took ' + dmg + ' damage!');
-        await delay(750);
+        if (verdict === 'supported') {
+            let dmg = Math.round(rand(22, 30) * enemy.dmgMult);
+            els.enemyWizard.classList.add('lunge');
+            const animP = Wizard.playState(els.enemyWizard, 'attack', 700);
+            await delay(200);
+            els.enemyWizard.classList.remove('lunge');
+            await projectile(els.enemyWizard, els.playerWizard, CAST_COLOR);
+            player.hp = Math.max(0, player.hp - dmg);
+            updateHp('player');
+            pulse(els.playerWizard, 'hit-flash', 320);
+            await Wizard.playState(els.playerWizard, 'hurt', 360);
+            await animP;
+            say('SUPPORTED! ' + enemy.name + ' lands ' + dmg + ' on you! ' + rationale);
+        } else if (verdict === 'misleading') {
+            // THE WIZARD WAS CAUGHT — backfire on the enemy (money shot)
+            const dmg = rand(18, 26);
+            await projectile(els.enemyWizard, els.enemyWizard, FIZZLE_COLOR);
+            enemy.hp = Math.max(0, enemy.hp - dmg);
+            updateHp('enemy');
+            await Promise.all([
+                pulse(els.enemyWizard, 'shake', 400),
+                Wizard.playState(els.enemyWizard, 'hurt', 360)
+            ]);
+            say('THE WIZARD WAS CAUGHT! Misleading claim backfires for ' + dmg + '! ' + rationale);
+        } else {
+            const dmg = Math.round(rand(0, 8) * enemy.dmgMult);
+            const animP = Wizard.playState(els.enemyWizard, 'attack', 500);
+            await projectile(els.enemyWizard, els.playerWizard, FIZZLE_COLOR);
+            if (dmg > 0) {
+                player.hp = Math.max(0, player.hp - dmg);
+                updateHp('player');
+            }
+            await animP;
+            say(enemy.name + "'s claim was UNSUPPORTED — it fizzles (" + dmg + '). ' + rationale);
+        }
+        await waitForClick();
     }
 
     /* ---------- end ---------- */
-    async function endBattle(playerWon) {
+    async function endBattle() {
+        busy = true;
+        els.actionMenu.classList.add('hidden');
+        els.inputWrap.classList.add('hidden');
+        els.citationBox.classList.add('hidden');
+
+        let playerWon;
+        if (player.hp <= 0 && enemy.hp <= 0) playerWon = player.hp >= enemy.hp;
+        else if (enemy.hp <= 0) playerWon = true;
+        else if (player.hp <= 0) playerWon = false;
+        else playerWon = player.hp >= enemy.hp; // ran out of rounds -> higher HP wins
+
         const loserEl = playerWon ? els.enemyWizard : els.playerWizard;
         const loser = playerWon ? enemy : player;
         Wizard.playState(loserEl, 'dead', 600);
         loserEl.classList.add('fainted');
-        say(loser.name + ' fainted!');
+        say(loser.name + ' is out of arguments!');
         await delay(900);
 
         say(playerWon
-            ? player.name + ' won the duel!'
-            : player.name + ' was defeated...');
+            ? player.name + ' WON the debate with ' + Math.max(0, Math.ceil(player.hp)) + ' HP!'
+            : player.name + ' was out-argued by ' + enemy.name + '...');
         await waitForClick();
+
+        // record the match for the leaderboard (best-effort)
+        try {
+            await Api.recordMatch({
+                name: player.name,
+                won: playerWon,
+                score: Math.max(0, Math.ceil(player.hp))
+            });
+        } catch (e) { /* leaderboard is best-effort; never block on it */ }
+
+        offerNext(playerWon);
+    }
+
+    function offerNext(playerWon) {
+        els.actionMenu.classList.add('hidden');
+        els.moveMenu.classList.add('hidden');
+        els.inputWrap.classList.add('hidden');
+
+        // Repurpose the action menu as a 2-option end screen.
+        const menu = els.actionMenu;
+        menu.innerHTML = '';
+        const again = document.createElement('div');
+        again.className = 'menu-item';
+        again.textContent = 'PLAY AGAIN';
+        const board = document.createElement('div');
+        board.className = 'menu-item';
+        board.textContent = 'LEADERBOARD';
+
+        again.addEventListener('click', event => {
+            event.stopPropagation();
+            restoreActionMenu();
+            ScreenManager.show('MENU');
+        });
+        board.addEventListener('click', event => {
+            event.stopPropagation();
+            restoreActionMenu();
+            ScreenManager.show('LEADERBOARD');
+        });
+        menu.appendChild(again);
+        menu.appendChild(board);
+
+        say(playerWon ? 'A masterful duel. What now?' : 'The wizard stands triumphant. What now?');
+        menu.classList.remove('hidden');
+        actionNav.setItems(menu.querySelectorAll('.menu-item'), 2);
+    }
+
+    /* rebuild the original FIGHT/WIZARD/PACK/RUN action menu after the end screen */
+    function restoreActionMenu() {
         busy = false;
-        ScreenManager.show('MENU');
+        const menu = els.actionMenu;
+        menu.classList.add('hidden');
+        menu.innerHTML = '';
+        const opts = [
+            { act: 'fight', label: 'FIGHT' },
+            { act: 'pkmn', label: 'WIZARD' },
+            { act: 'pack', label: 'PACK' },
+            { act: 'run', label: 'RUN' }
+        ];
+        opts.forEach(o => {
+            const div = document.createElement('div');
+            div.className = 'menu-item';
+            div.dataset.act = o.act;
+            div.textContent = o.label;
+            div.addEventListener('click', event => {
+                event.stopPropagation();
+                onAction(o.act);
+            });
+            menu.appendChild(div);
+        });
     }
 
     return { init, start };

@@ -1,0 +1,344 @@
+/* ========================================
+   DEBATE - Pixel UI for the You.com debate battle
+   Loaded AFTER base/battle css so it can override.
+   Crisp, chunky, 2-3 color. No blur / no gradients.
+   ======================================== */
+
+:root {
+    --debate-ink: var(--gs-black);
+    --debate-paper: var(--screen-bg);
+    --debate-gold: var(--gold);
+    --debate-green: var(--hp-green);
+    --debate-red: var(--hp-red);
+    --debate-grey: var(--diff-hard);
+    --youcom-blue: var(--gs-blue);
+}
+
+/* ----------------------------------------
+   STATE YOUR CLAIM prompt
+   ---------------------------------------- */
+.debate-prompt {
+    display: block;
+    width: 100%;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.4;
+    color: var(--debate-ink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.debate-prompt .blink-text {
+    color: var(--debate-red);
+}
+
+/* ----------------------------------------
+   ARGUMENT INPUT (lives inside #dialog-box)
+   ---------------------------------------- */
+.debate-input {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.debate-input textarea,
+.debate-input input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+    resize: none;
+    background: var(--debate-paper);
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    outline: none;
+    padding: 4px 5px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    line-height: 1.4;
+    image-rendering: pixelated;
+    box-shadow: inset -2px -2px 0 0 #c8c8c8;
+}
+
+.debate-input textarea::placeholder,
+.debate-input input::placeholder {
+    color: #9a9a9a;
+    text-transform: uppercase;
+}
+
+.debate-input textarea:focus,
+.debate-input input:focus {
+    border-color: var(--debate-gold);
+    box-shadow: inset -2px -2px 0 0 #c8c8c8, 0 0 0 2px var(--debate-gold);
+}
+
+/* chunky SUBMIT button */
+.debate-submit {
+    flex: 0 0 auto;
+    align-self: stretch;
+    background: var(--debate-green);
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    padding: 0 10px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    image-rendering: pixelated;
+    box-shadow: -2px -2px 0 0 #2a7a30 inset, 2px 2px 0 0 #93e599 inset;
+}
+
+.debate-submit:hover {
+    background: var(--debate-gold);
+    color: var(--debate-ink);
+    box-shadow: -2px -2px 0 0 #9c7d1f inset, 2px 2px 0 0 #f0d566 inset;
+}
+
+.debate-submit:active {
+    box-shadow: 2px 2px 0 0 #2a7a30 inset, -2px -2px 0 0 #93e599 inset;
+    transform: translate(1px, 1px);
+}
+
+.debate-submit:disabled {
+    background: var(--debate-grey);
+    color: #efefef;
+    cursor: default;
+    box-shadow: none;
+}
+
+/* ----------------------------------------
+   CITATION BOX (You.com sourcing)
+   ---------------------------------------- */
+.citation-box {
+    width: 100%;
+    margin-top: 4px;
+    border: 2px solid var(--debate-ink);
+    background: var(--debate-paper);
+    padding: 4px 5px 5px;
+    font-family: 'GameFont', fantasy;
+    box-shadow: -2px -2px 0 0 #d0d0d0 inset;
+}
+
+/* You.com source tag */
+.citation-box .youcom-tag {
+    display: inline-block;
+    background: var(--youcom-blue);
+    color: var(--debate-gold);
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 4px;
+    border: 1px solid var(--debate-ink);
+    margin-bottom: 3px;
+    image-rendering: pixelated;
+}
+
+.citation-box .citation-title {
+    display: block;
+    font-size: 8px;
+    color: var(--debate-ink);
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+
+.citation-box .citation-domain {
+    display: block;
+    font-size: 7px;
+    color: var(--youcom-blue);
+    text-decoration: underline;
+    word-break: break-all;
+    margin-bottom: 3px;
+    cursor: pointer;
+}
+
+.citation-box .citation-domain:hover {
+    color: var(--debate-gold);
+}
+
+/* snippet: scrollable, clamp ~3 lines */
+.citation-box .citation-snippet {
+    display: block;
+    font-size: 7px;
+    line-height: 1.45;
+    color: #404040;
+    max-height: 31px; /* ~3 lines at 7px */
+    overflow-y: auto;
+    padding-right: 2px;
+    scrollbar-width: thin;
+}
+
+.citation-box .citation-snippet::-webkit-scrollbar {
+    width: 4px;
+}
+
+.citation-box .citation-snippet::-webkit-scrollbar-thumb {
+    background: var(--debate-ink);
+}
+
+/* ----------------------------------------
+   VERDICT FLASHES (brief full-scene tint/pulse)
+   apply to #scene
+   ---------------------------------------- */
+.flash-supported {
+    animation: flash-supported-kf 0.6s steps(1) 1;
+}
+
+.flash-misleading {
+    animation: flash-misleading-kf 0.6s steps(1) 1;
+}
+
+.flash-unsupported {
+    animation: flash-unsupported-kf 0.6s steps(1) 1;
+}
+
+@keyframes flash-supported-kf {
+    0%   { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.0); }
+    25%  { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.55); }
+    50%  { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.0); }
+    75%  { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.4); }
+    100% { box-shadow: inset 0 0 0 200px rgba(72, 192, 80, 0.0); }
+}
+
+@keyframes flash-misleading-kf {
+    0%   { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.0); }
+    25%  { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.55); }
+    50%  { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.0); }
+    75%  { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.4); }
+    100% { box-shadow: inset 0 0 0 200px rgba(200, 56, 40, 0.0); }
+}
+
+@keyframes flash-unsupported-kf {
+    0%   { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.0); }
+    25%  { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.55); }
+    50%  { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.0); }
+    75%  { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.4); }
+    100% { box-shadow: inset 0 0 0 200px rgba(138, 138, 138, 0.0); }
+}
+
+/* ----------------------------------------
+   SHAKE (recoil / backfire) + HIT FLASH
+   apply to a wizard sprite (#player-wizard / #enemy-wizard)
+   ---------------------------------------- */
+.shake {
+    animation: shake-kf 0.4s steps(2) 2;
+}
+
+@keyframes shake-kf {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-3px, 1px); }
+    40%  { transform: translate(3px, -1px); }
+    60%  { transform: translate(-2px, 2px); }
+    80%  { transform: translate(2px, -2px); }
+    100% { transform: translate(0, 0); }
+}
+
+.hit-flash {
+    animation: hit-flash-kf 0.3s steps(1) 3;
+}
+
+@keyframes hit-flash-kf {
+    0%   { filter: none; }
+    50%  { filter: brightness(0) invert(1); }
+    100% { filter: none; }
+}
+
+/* ----------------------------------------
+   LEADERBOARD SCREEN (matches .screen siblings)
+   ---------------------------------------- */
+.lb-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: var(--debate-paper);
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+.lb-screen .lb-title {
+    font-family: 'GameFont', fantasy;
+    font-size: 12px;
+    color: var(--debate-ink);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 2px solid var(--debate-ink);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    text-align: center;
+    width: 100%;
+}
+
+.lb-list {
+    width: 100%;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.lb-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.lb-list::-webkit-scrollbar-thumb {
+    background: var(--debate-ink);
+}
+
+.lb-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'GameFont', fantasy;
+    font-size: 8px;
+    color: var(--debate-ink);
+    border: 2px solid var(--debate-ink);
+    background: var(--debate-paper);
+    padding: 4px 5px;
+    margin-bottom: 3px;
+    box-shadow: -2px -2px 0 0 #d0d0d0 inset;
+}
+
+.lb-rank {
+    flex: 0 0 18px;
+    text-align: center;
+    color: var(--debate-ink);
+}
+
+.lb-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.lb-score {
+    flex: 0 0 auto;
+    text-align: right;
+    color: var(--youcom-blue);
+}
+
+/* #1 gets the gold treatment */
+.lb-row.lb-first {
+    background: var(--debate-gold);
+    border-color: var(--debate-ink);
+    box-shadow: -2px -2px 0 0 #9c7d1f inset, 2px 2px 0 0 #f0d566 inset;
+}
+
+.lb-row.lb-first .lb-rank,
+.lb-row.lb-first .lb-name,
+.lb-row.lb-first .lb-score {
+    color: var(--debate-ink);
+}
+
+/* current player's row highlight */
+.lb-row.lb-me {
+    border-color: var(--debate-green);
+    box-shadow: 0 0 0 1px var(--debate-green) inset;
+}
+
+.lb-screen .lb-back {
+    margin-top: 6px;
+}

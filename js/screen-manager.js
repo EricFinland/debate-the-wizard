@@ -7,7 +7,8 @@ const ScreenManager = (() => {
         MAIN_MENU: 'main-menu-screen',
         REGISTRATION: 'registration-screen',
         MENU: 'menu-screen',
-        BATTLE: 'battle-screen'
+        BATTLE: 'battle-screen',
+        LEADERBOARD: 'leaderboard-screen'
     };
 
     const listeners = {};
