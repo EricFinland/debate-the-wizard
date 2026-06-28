@@ -51,6 +51,14 @@ Three parallel tracks (see [docs/backend-architecture.md](docs/backend-architect
 ## Status
 
 - [x] Database schema — `migrations/20260628120000_init.sql`
+- [x] `/judge-claim` edge function — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
+- [x] Multi-dimension scorecard per claim (factual accuracy / logic / evidence / persuasiveness) + fallacy detection, all in the single judge call
+- [x] curl smoke test — `scripts/test-judge.sh`
+- [x] Evidence-grounded agent workflow — Claim + Research, Fact Check, Fallacy Detection, Debater, Judge
+- [ ] `/wizard-turn`
+- [ ] Realtime channel + score broadcast
+- [ ] Postgres persistence in the functions
+- [ ] React arena frontend
 - [x] `judge-claim` — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
 - [x] Multi-dimension scorecard + fallacy detection in the single judge call
 - [x] **Orchestration/infra**: `create-room`, `submit-argument`, `advance-wizard`, `get-room`, `leaderboard`, `health`
@@ -66,10 +74,16 @@ Three parallel tracks (see [docs/backend-architecture.md](docs/backend-architect
 ```
 migrations/                 Postgres schema (InsForge CLI migrations)
 functions/judge-claim/      The core search + judge edge function
+agent-workflow/             Local TypeScript multi-agent debate workflow
+docs/agent-workflow.md      Agent workflow diagram, responsibilities, and contracts
 scripts/test-judge.sh       curl smoke test for the deployed function
+scripts/test-agent-workflow.sh local smoke test for the agent workflow
 SETUP.md                    Init -> deploy -> test, step by step
 .env.example                Secrets the function expects
 ```
+
+See **[docs/agent-workflow.md](docs/agent-workflow.md)** for the evidence-grounded
+agent workflow, including the Mermaid diagram and data contracts.
 
 ## `judge-claim` response contract
 
