@@ -44,3 +44,6 @@ Thumbs.db
 .trae
 .windsurf
 .gstack/
+
+# build artifacts
+*.tsbuildinfo
