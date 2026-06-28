@@ -217,6 +217,8 @@
 
 #text-content {
     min-height: 32px;
+    padding-right: 184px; /* keep narration clear of the top-right action menu */
+    overflow-wrap: anywhere;
 }
 
 #advance-arrow {
