@@ -17,7 +17,7 @@ export type Verdict = "supported" | "unsupported" | "misleading";
 export type Side = "A" | "B"; // A = human, B = wizard
 export type Author = "player" | "wizard";
 export type RoomStatus = "lobby" | "active" | "finished";
-export type Difficulty = "novice" | "adept" | "archmage";
+export type Difficulty = "novice" | "adept" | "archmage" | "impossible";
 
 export interface Scores {
   factual_accuracy: number; // 0-10
