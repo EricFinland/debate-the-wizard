@@ -412,6 +412,8 @@ export default function Page() {
                           actions.start({ ...input, difficulty })
                         }}
                         loading={busy}
+                        user={user ?? null}
+                        onSignIn={actions.signIn}
                       />
                     </div>
 
