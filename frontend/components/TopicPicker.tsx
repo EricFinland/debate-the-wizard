@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SEED_TOPICS } from '@/lib/seed-topics'
 import { cn } from '@/lib/ui'
@@ -13,40 +13,74 @@ export interface TopicPickerProps {
 }
 
 const ROUNDS_OPTIONS: RoundsOption[] = [3, 5, 7]
+const MIN_ARG_LENGTH = 20
+const MAX_ARG_LENGTH = 600
 
-const cardVariants = {
-  rest: { y: 0, scale: 1 },
-  hover: { y: -6, scale: 1.015 },
-}
+const MODIFIER_HINT =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+    ? '⌘'
+    : 'Ctrl'
 
 export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
-  // selection state: a seed topic id, or the sentinel 'custom' for the freeform field
-  const [selectedId, setSelectedId] = useState<string | null>(SEED_TOPICS[0]?.id ?? null)
-  const [customTopic, setCustomTopic] = useState('')
+  const [argument, setArgument] = useState('')
   const [rounds, setRounds] = useState<RoundsOption>(5)
+  const [inspirationOpen, setInspirationOpen] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const usingCustom = selectedId === 'custom'
-  const customValid = customTopic.trim().length >= 8
-  const canStart = !loading && (usingCustom ? customValid : Boolean(selectedId))
+  const trimmed = argument.trim()
+  const charCount = argument.length
+  const remaining = MAX_ARG_LENGTH - charCount
+  const tooShort = trimmed.length > 0 && trimmed.length < MIN_ARG_LENGTH
+  const atLimit = remaining <= 0
+  const nearLimit = remaining <= 80
+  const valid = trimmed.length >= MIN_ARG_LENGTH && !atLimit
+  const canStart = !loading && valid
 
-  function handleStart() {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const next = e.target.value
+    setArgument(next.length > MAX_ARG_LENGTH ? next.slice(0, MAX_ARG_LENGTH) : next)
+  }, [])
+
+  const handleStart = useCallback(() => {
     if (!canStart) return
-    if (usingCustom) {
-      onStart({ topic: customTopic.trim(), rounds_total: rounds })
-    } else if (selectedId) {
-      onStart({ topic_id: selectedId, rounds_total: rounds })
-    }
-  }
+    onStart({ topic: trimmed, rounds_total: rounds })
+  }, [canStart, trimmed, rounds, onStart])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleStart()
+      }
+    },
+    [handleStart],
+  )
+
+  const fillFromSeed = useCallback((topic: string) => {
+    setArgument(topic)
+    setInspirationOpen(false)
+    textareaRef.current?.focus()
+  }, [])
+
+  const counterTone = atLimit
+    ? 'text-rose-300'
+    : nearLimit
+      ? 'text-amber-300'
+      : 'text-zinc-500'
+
+  const ratio = Math.min(charCount / MAX_ARG_LENGTH, 1)
 
   return (
     <div className="relative w-full overflow-hidden rounded-3xl border border-white/10 bg-[#0a0717]/60 text-zinc-100 backdrop-blur-sm">
-      {/* arcane background layers */}
+      {/* arcane background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,57,196,0.28),_transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(180,140,40,0.12),_transparent_50%)]" />
       </div>
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center px-5 py-10 sm:py-12">
+
         {/* header */}
         <motion.div
           initial={{ opacity: 0, y: -18 }}
@@ -64,12 +98,13 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
             style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
           >
             <span className="bg-gradient-to-b from-amber-200 via-amber-100 to-amber-300/70 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(217,180,74,0.25)]">
-              Choose Your Battleground
+              State Your Claim
             </span>
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-balance text-sm leading-relaxed text-zinc-400 sm:text-base">
-            Every claim you and the wizard make is fact-checked against live
-            citations. Argue well, or be exposed.
+            Write your opening argument. The wizard will oppose you — and every
+            claim gets fact-checked against live{' '}
+            <span className="font-semibold text-zinc-300">You.com</span> search.
           </p>
         </motion.div>
 
@@ -82,160 +117,205 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
         >
           <span className="text-xl">🛡️</span>
           <span className="text-zinc-300">
-            You wield the human banner and argue{' '}
-            <strong className="font-semibold text-amber-200">FOR</strong> the
-            motion. The{' '}
+            You argue{' '}
+            <strong className="font-semibold text-amber-200">FOR</strong> your
+            claim. The{' '}
             <strong className="font-semibold text-violet-300">wizard</strong>{' '}
             argues against you.
           </span>
         </motion.div>
 
-        {/* topic scroll cards */}
-        <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-2">
-          {SEED_TOPICS.map((t, i) => {
-            const active = selectedId === t.id
-            return (
-              <motion.button
-                key={t.id}
-                type="button"
-                onClick={() => setSelectedId(t.id)}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + i * 0.1, duration: 0.5, ease: 'easeOut' }}
-                variants={cardVariants}
-                whileHover="hover"
-                whileTap={{ scale: 0.985 }}
-                className={cn(
-                  'group relative flex flex-col overflow-hidden rounded-2xl border p-6 text-left transition-colors duration-300',
-                  'bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur',
-                  active
-                    ? 'border-violet-400/70 shadow-[0_0_45px_-8px_rgba(139,92,246,0.55)]'
-                    : 'border-white/10 hover:border-violet-400/40'
-                )}
-              >
-                {/* selected glow ring */}
-                {active && (
-                  <motion.div
-                    layoutId="topic-glow"
-                    className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.18),_transparent_70%)]"
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  />
-                )}
-
-                <div className="relative flex items-start justify-between gap-3">
-                  <span className="text-2xl" aria-hidden>
-                    📜
-                  </span>
-                  <span
-                    className={cn(
-                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs transition-all',
-                      active
-                        ? 'border-violet-300 bg-violet-400 text-[#0a0717]'
-                        : 'border-white/20 text-transparent group-hover:border-violet-300/60'
-                    )}
-                  >
-                    ✓
-                  </span>
-                </div>
-
-                <h3
-                  className="relative mt-4 text-lg font-semibold leading-snug text-zinc-100"
-                  style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
-                >
-                  {t.topic}
-                </h3>
-
-                <div className="relative mt-5 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 text-xs">
-                  <div className="rounded-lg border border-amber-300/25 bg-amber-400/[0.07] px-3 py-2">
-                    <div className="mb-0.5 font-semibold uppercase tracking-wider text-amber-300/80">
-                      You
-                    </div>
-                    <div className="text-zinc-300">{t.human_side_label}</div>
-                  </div>
-                  <div className="flex items-center justify-center text-base font-bold text-zinc-500">
-                    vs
-                  </div>
-                  <div className="rounded-lg border border-violet-300/25 bg-violet-400/[0.07] px-3 py-2">
-                    <div className="mb-0.5 font-semibold uppercase tracking-wider text-violet-300/80">
-                      Wizard
-                    </div>
-                    <div className="text-zinc-300">{t.wizard_side_label}</div>
-                  </div>
-                </div>
-              </motion.button>
-            )
-          })}
-        </div>
-
-        {/* custom topic scroll */}
+        {/* ---- Main argument input ---- */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55, duration: 0.5 }}
-          className="mt-5 w-full"
+          transition={{ delay: 0.35, duration: 0.5 }}
+          className="w-full"
         >
           <motion.div
-            variants={cardVariants}
-            initial="rest"
-            animate="rest"
-            whileHover="hover"
-            onClick={() => setSelectedId('custom')}
+            animate={
+              focused
+                ? { boxShadow: '0 0 42px -6px rgba(251,191,36,0.35)' }
+                : { boxShadow: '0 0 28px -12px rgba(139,92,246,0.4)' }
+            }
+            transition={{ duration: 0.3 }}
             className={cn(
-              'group relative cursor-text overflow-hidden rounded-2xl border p-6 transition-colors duration-300',
-              'bg-gradient-to-b from-white/[0.04] to-white/[0.01] backdrop-blur',
-              usingCustom
-                ? 'border-violet-400/70 shadow-[0_0_45px_-8px_rgba(139,92,246,0.55)]'
-                : 'border-white/10 hover:border-violet-400/40'
+              'relative w-full overflow-hidden rounded-2xl border bg-zinc-950/60 backdrop-blur-sm transition-colors duration-300',
+              focused
+                ? 'border-amber-400/50'
+                : 'border-violet-500/20',
             )}
           >
-            <div className="relative flex items-center gap-2">
-              <span className="text-2xl" aria-hidden>
-                ✍️
-              </span>
-              <span
-                className="text-lg font-semibold text-zinc-100"
-                style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
-              >
-                Inscribe your own motion
-              </span>
-            </div>
-            <p className="relative mt-1 text-xs text-zinc-500">
-              You will argue <span className="text-amber-300">FOR</span> whatever
-              you write. The wizard takes the opposing stance.
-            </p>
-            <input
-              type="text"
-              value={customTopic}
-              onChange={(e) => setCustomTopic(e.target.value)}
-              onFocus={() => setSelectedId('custom')}
-              placeholder="e.g. Remote work makes companies more productive."
+            {/* gold seam */}
+            <div
+              aria-hidden
               className={cn(
-                'relative mt-4 w-full rounded-xl border bg-black/30 px-4 py-3 text-sm text-zinc-100 outline-none transition-all placeholder:text-zinc-600',
-                usingCustom
-                  ? 'border-violet-400/50 ring-2 ring-violet-500/20'
-                  : 'border-white/10 focus:border-violet-400/50'
+                'pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity duration-300',
+                'bg-gradient-to-r from-transparent via-amber-300/70 to-transparent',
+                focused ? 'opacity-100' : 'opacity-40',
               )}
             />
-            <AnimatePresence>
-              {usingCustom && customTopic.length > 0 && !customValid && (
-                <motion.p
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="relative mt-2 text-xs text-rose-300/80"
-                >
-                  Give the wizard something to chew on (at least a few words).
-                </motion.p>
+
+            <div className="flex items-center gap-2 px-4 pt-3">
+              <span
+                aria-hidden
+                className="text-sm leading-none text-amber-300/80 transition-transform duration-300 group-focus-within:rotate-12"
+              >
+                ✦
+              </span>
+              <label
+                htmlFor="opening-argument"
+                className="select-none font-serif text-xs uppercase tracking-[0.22em] text-amber-200/70"
+              >
+                Your opening argument
+              </label>
+            </div>
+
+            <textarea
+              ref={textareaRef}
+              id="opening-argument"
+              value={argument}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              disabled={loading}
+              spellCheck
+              rows={5}
+              aria-label="Your opening argument"
+              placeholder="e.g. Nuclear energy is far safer than coal per kWh and essential for decarbonisation — the data clearly supports this."
+              className={cn(
+                'w-full resize-none bg-transparent px-4 pb-3 pt-3 font-sans text-[15px] leading-relaxed text-zinc-100',
+                'placeholder:text-zinc-500/70 focus:outline-none',
+                'disabled:cursor-not-allowed disabled:text-zinc-500',
+                'min-h-[130px] max-h-[280px]',
               )}
-            </AnimatePresence>
+            />
+
+            {/* char fill meter */}
+            <div aria-hidden className="px-4">
+              <div className="h-px w-full overflow-hidden rounded-full bg-white/5">
+                <motion.div
+                  className={cn(
+                    'h-full rounded-full',
+                    atLimit
+                      ? 'bg-rose-400'
+                      : nearLimit
+                        ? 'bg-amber-300'
+                        : 'bg-gradient-to-r from-violet-500 to-amber-300',
+                  )}
+                  initial={false}
+                  animate={{ width: `${ratio * 100}%` }}
+                  transition={{ type: 'spring', stiffness: 220, damping: 30 }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <span
+                className={cn('tabular-nums font-mono text-xs transition-colors duration-200', counterTone)}
+                aria-live="polite"
+              >
+                {charCount.toLocaleString()}
+                <span className="text-zinc-600">/{MAX_ARG_LENGTH.toLocaleString()}</span>
+              </span>
+              <span className="hidden text-xs text-zinc-600 sm:inline">
+                {MODIFIER_HINT}
+                <span className="px-0.5 text-zinc-700">+</span>
+                Enter to begin
+              </span>
+            </div>
           </motion.div>
+
+          {/* validation hint */}
+          <AnimatePresence>
+            {tooShort && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 text-xs text-rose-300/80"
+              >
+                Give the wizard something to chew on — make a real claim.
+              </motion.p>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* rounds selector */}
+        {/* ---- Inspiration accordion ---- */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.65, duration: 0.5 }}
+          transition={{ delay: 0.45, duration: 0.5 }}
+          className="mt-5 w-full"
+        >
+          <button
+            type="button"
+            onClick={() => setInspirationOpen((o) => !o)}
+            className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-zinc-400 transition-colors hover:border-violet-400/30 hover:text-zinc-200"
+          >
+            <span aria-hidden className="text-base">📜</span>
+            <span className="font-medium">Need inspiration? Browse example claims</span>
+            <motion.span
+              animate={{ rotate: inspirationOpen ? 180 : 0 }}
+              transition={{ duration: 0.25 }}
+              className="ml-auto text-xs text-zinc-600"
+              aria-hidden
+            >
+              ▼
+            </motion.span>
+          </button>
+
+          <AnimatePresence>
+            {inspirationOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.28, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {SEED_TOPICS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => fillFromSeed(t.topic)}
+                      className="group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-5 text-left backdrop-blur transition-colors duration-200 hover:border-violet-400/40 hover:bg-white/[0.06]"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-xl" aria-hidden>📜</span>
+                        <span className="text-sm font-medium leading-snug text-zinc-200 group-hover:text-white">
+                          {t.topic}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-xs">
+                        <div className="rounded-lg border border-amber-300/20 bg-amber-400/[0.06] px-2.5 py-1.5">
+                          <div className="mb-0.5 font-semibold uppercase tracking-wider text-amber-300/70">You</div>
+                          <div className="text-zinc-400">{t.human_side_label}</div>
+                        </div>
+                        <div className="text-center font-bold text-zinc-600">vs</div>
+                        <div className="rounded-lg border border-violet-300/20 bg-violet-400/[0.06] px-2.5 py-1.5">
+                          <div className="mb-0.5 font-semibold uppercase tracking-wider text-violet-300/70">Wizard</div>
+                          <div className="text-zinc-400">{t.wizard_side_label}</div>
+                        </div>
+                      </div>
+                      <span className="mt-1 text-xs text-violet-300/60 group-hover:text-violet-300/90 transition-colors">
+                        ↗ Use this claim
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* ---- Rounds selector ---- */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55, duration: 0.5 }}
           className="mt-10 flex flex-col items-center"
         >
           <div className="mb-3 text-xs font-medium uppercase tracking-[0.25em] text-zinc-500">
@@ -251,7 +331,7 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
                   onClick={() => setRounds(r)}
                   className={cn(
                     'relative z-10 h-11 w-16 rounded-full text-sm font-semibold transition-colors',
-                    active ? 'text-[#0a0717]' : 'text-zinc-400 hover:text-zinc-200'
+                    active ? 'text-[#0a0717]' : 'text-zinc-400 hover:text-zinc-200',
                   )}
                 >
                   {active && (
@@ -268,11 +348,11 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
           </div>
         </motion.div>
 
-        {/* CTA */}
+        {/* ---- CTA ---- */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.75, duration: 0.5 }}
+          transition={{ delay: 0.65, duration: 0.5 }}
           className="mt-12 w-full max-w-md"
         >
           <motion.button
@@ -285,7 +365,7 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
               'group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 py-5 text-lg font-bold tracking-wide transition-all',
               canStart
                 ? 'bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 text-white shadow-[0_0_50px_-8px_rgba(168,85,247,0.7)]'
-                : 'cursor-not-allowed bg-white/5 text-zinc-600'
+                : 'cursor-not-allowed bg-white/5 text-zinc-600',
             )}
             style={{ fontFamily: 'var(--font-display, Cinzel), Georgia, serif' }}
           >
@@ -319,8 +399,6 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
 }
 
 function SpinnerRune() {
-  // CSS-only spin (Tailwind's built-in `animate-spin` keyframe) per the
-  // ANIMATION RULE — looping motion must never use framer-motion.
   return (
     <span className="inline-block text-xl leading-none animate-spin" aria-hidden>
       ✶
