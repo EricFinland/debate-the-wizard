@@ -21,8 +21,11 @@
 //   JUDGE_MODEL       - default anthropic/claude-3.5-sonnet
 //   EXTRACT_MODEL     - default anthropic/claude-3.5-haiku
 //   SEARCH_COUNT      - default 6
+//   YOUCOM_SEARCH_URL - default https://ydc-index.io/v1/search
 
 // ---------- config ----------
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 const SCORE = { supported: 10, unsupported: 0, misleading: -5 } as const;
 type Verdict = keyof typeof SCORE;
 
@@ -31,6 +34,7 @@ const env = (k: string, fallback = "") => Deno.env.get(k) ?? fallback;
 const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-3.5-sonnet");
 const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-3.5-haiku");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
+const YOUCOM_SEARCH_URL = env("YOUCOM_SEARCH_URL", "https://ydc-index.io/v1/search");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +65,23 @@ interface JudgeResult {
   fallacies: string[]; // e.g. ["straw man", "ad hominem"]; [] if none
   citations: Citation[];
   citation_index: number | null;
+}
+interface YouComResult {
+  title?: unknown;
+  url?: unknown;
+  link?: unknown;
+  description?: unknown;
+  snippet?: unknown;
+  snippets?: unknown;
+}
+interface YouComSearchResponse {
+  results?: {
+    web?: YouComResult[];
+    news?: YouComResult[];
+  };
+  web?: YouComResult[];
+  news?: YouComResult[];
+  hits?: YouComResult[];
 }
 
 const ZERO_SCORES: Scores = { factual_accuracy: 0, logic: 0, evidence: 0, persuasiveness: 0 };
@@ -121,30 +142,51 @@ async function searchYouCom(query: string): Promise<Citation[]> {
   const key = env("YOUCOM_API_KEY");
   if (!key) throw new Error("YOUCOM_API_KEY not set.");
 
-  const res = await fetch("https://api.you.com/v1/search", {
-    method: "POST",
-    headers: { "X-API-Key": key, "Content-Type": "application/json" },
-    body: JSON.stringify({ query, count: SEARCH_COUNT }),
+  const url = new URL(YOUCOM_SEARCH_URL);
+  url.searchParams.set("query", query);
+  url.searchParams.set("count", String(SEARCH_COUNT));
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { "X-API-Key": key },
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`You.com ${res.status}: ${detail.slice(0, 300)}`);
   }
-  const data = await res.json();
+  const data = await res.json() as YouComSearchResponse;
+  return normalizeYouComResults(data, SEARCH_COUNT);
+}
 
-  // Normalize defensively across possible response shapes.
-  const web: any[] = data?.results?.web ?? data?.web ?? data?.hits ?? data?.results ?? [];
+export function normalizeYouComResults(data: YouComSearchResponse, limit = SEARCH_COUNT): Citation[] {
+  const results = Array.isArray(data?.results?.web)
+    ? [...data.results.web, ...(Array.isArray(data.results.news) ? data.results.news : [])]
+    : [
+      ...(Array.isArray(data?.web) ? data.web : []),
+      ...(Array.isArray(data?.news) ? data.news : []),
+      ...(Array.isArray(data?.hits) ? data.hits : []),
+    ];
+
   const out: Citation[] = [];
-  for (const r of web) {
-    const snippets: string[] = r?.snippets ?? (r?.snippet ? [r.snippet] : (r?.description ? [r.description] : []));
-    const snippet = snippets.filter(Boolean).join(" ").trim();
+  for (const r of results) {
+    const snippetParts = Array.isArray(r?.snippets)
+      ? r.snippets
+      : [r?.snippet, r?.description];
+    const snippet = snippetParts
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .join(" ")
+      .trim();
+    const url = String(r?.url ?? r?.link ?? "").trim();
+
+    if (!url) continue;
     if (!snippet) continue;
+
     out.push({
       title: String(r?.title ?? "").trim(),
-      url: String(r?.url ?? r?.link ?? "").trim(),
+      url,
       snippet,
     });
-    if (out.length >= SEARCH_COUNT) break;
+    if (out.length >= limit) break;
   }
   return out;
 }
