@@ -85,6 +85,7 @@ Input:
 ```ts
 {
   user_argument: string;
+  history?: DebateHistoryEntry[];
 }
 ```
 
@@ -146,6 +147,8 @@ Input:
 ```ts
 {
   user_argument: string;
+  difficulty?: Difficulty;
+  history?: DebateHistoryEntry[];
 }
 ```
 
@@ -223,7 +226,7 @@ interface FactCheckReport {
 The public workflow entrypoint remains:
 
 ```ts
-runAgentWorkflow(input: { user_argument: string }): Promise<AgentWorkflowResult>
+runAgentWorkflow(input: { user_argument: string, difficulty?: Difficulty, history?: DebateHistoryEntry[] }): Promise<AgentWorkflowResult>
 ```
 
 The result includes:
