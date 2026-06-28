@@ -74,8 +74,10 @@ async function searchYouCom(query) {
 async function extractSearchQuery(argument, topic, temperature = 0) {
   const sys = "You turn a debate argument into ONE concise web-search query (max 12 words) targeting its single most important factual claim. Reply with ONLY the query text, no quotes.";
   try {
-    const q = (await chat(EXTRACT_MODEL, [{ role: "system", content: sys }, { role: "user", content: `TOPIC: ${topic || "(unspecified)"}
-ARGUMENT: ${argument}` }], temperature)).trim().replace(/^["']|["']$/g, "");
+    const q = (await chat(EXTRACT_MODEL, [{ role: "system", content: sys }, {
+      role: "user", content: `TOPIC: ${topic || "(unspecified)"}
+ARGUMENT: ${argument}`
+    }], temperature)).trim().replace(/^["']|["']$/g, "");
     return q || argument.slice(0, 200);
   } catch {
     return argument.slice(0, 200);
@@ -85,11 +87,13 @@ async function judgeVerdict(argument, citations, temperature = 0) {
   const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})
 ${c.snippet}`).join("\n\n");
   const sys = 'You are a debate fact-checker and scorer. Given an ARGUMENT and SEARCH SNIPPETS: 1) extract the single most important factual claim; 2) rule supported/unsupported/misleading; 3) score 0-10 on factual_accuracy, logic, evidence, persuasiveness; 4) name any fallacies. Return ONLY JSON: {"key_claim":"...","verdict":"supported|unsupported|misleading","rationale":"<=20 words","citation_index":<int or null>,"scores":{"factual_accuracy":0,"logic":0,"evidence":0,"persuasiveness":0},"fallacies":[]}. supported = a snippet clearly backs the claim; unsupported = none addresses it; misleading = a snippet contradicts it. citation_index is the snippet you relied on, or null.';
-  const raw = await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: `ARGUMENT:
+  const raw = await chat(JUDGE_MODEL, [{ role: "system", content: sys }, {
+    role: "user", content: `ARGUMENT:
 ${argument}
 
 SEARCH SNIPPETS:
-${list || "(none found)"}` }], temperature);
+${list || "(none found)"}`
+  }], temperature);
   const p = parseJson(raw);
   if (!p) return { key_claim: argument.slice(0, 200), verdict: "unsupported", rationale: "Judge response could not be parsed.", scores: ZERO_SCORES, fallacies: [], citation_index: null };
   const verdict = ["supported", "unsupported", "misleading"].includes(p.verdict) ? p.verdict : "unsupported";

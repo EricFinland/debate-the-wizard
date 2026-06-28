@@ -33,202 +33,203 @@
 <body>
     <div id="game-container">
         <div id="gb-wrap">
-        <div id="game-boy">
-            <div id="lcd-overlay"></div>
+            <div id="game-boy">
+                <div id="lcd-overlay"></div>
 
-            <!-- ============ MAIN MENU ============ -->
-            <section id="main-menu-screen" class="screen">
-                <div class="mm-title">Debate da<br>wizard</div>
-                <div class="mm-sub blink-text">1-vs-1 battle</div>
-                <div class="mm-menu">
-                    <div class="mm-opt" id="mm-continue" data-action="continue">CONTINUE</div>
-                    <div class="mm-opt" id="mm-newgame" data-action="newgame">NEW GAME</div>
-                    <div class="mm-opt" id="mm-leaderboard" data-action="leaderboard">LEADERBOARD</div>
-                    <div class="mm-opt" id="mm-account" data-action="account">ACCOUNT</div>
-                </div>
-            </section>
+                <!-- ============ MAIN MENU ============ -->
+                <section id="main-menu-screen" class="screen">
+                    <div class="mm-title">Debate da<br>wizard</div>
+                    <div class="mm-sub blink-text">1-vs-1 battle</div>
+                    <div class="mm-menu">
+                        <div class="mm-opt" id="mm-continue" data-action="continue">CONTINUE</div>
+                        <div class="mm-opt" id="mm-newgame" data-action="newgame">NEW GAME</div>
+                        <div class="mm-opt" id="mm-leaderboard" data-action="leaderboard">LEADERBOARD</div>
+                        <div class="mm-opt" id="mm-account" data-action="account">ACCOUNT</div>
+                    </div>
+                </section>
 
-            <!-- ============ REGISTRATION ============ -->
-            <section id="registration-screen" class="screen hidden">
-                <div class="reg-title">REGISTRATION</div>
-                <div class="reg-label">PLEASE ENTER YOUR NAME</div>
-                <input type="text" id="name-input" maxlength="8" placeholder="NAME" autocomplete="off">
+                <!-- ============ REGISTRATION ============ -->
+                <section id="registration-screen" class="screen hidden">
+                    <div class="reg-title">REGISTRATION</div>
+                    <div class="reg-label">PLEASE ENTER YOUR NAME</div>
+                    <input type="text" id="name-input" maxlength="8" placeholder="NAME" autocomplete="off">
 
-                <div class="reg-label" style="margin-top:8px;">CHOOSE YOUR WIZARD</div>
-                <div class="color-picker" id="color-picker">
-                    <div class="color-opt" data-color="red">
-                        <div class="wizard wizard--red wizard--idle swatch-wizard"></div>
-                        <span>RED</span>
+                    <div class="reg-label" style="margin-top:8px;">CHOOSE YOUR WIZARD</div>
+                    <div class="color-picker" id="color-picker">
+                        <div class="color-opt" data-color="red">
+                            <div class="wizard wizard--red wizard--idle swatch-wizard"></div>
+                            <span>RED</span>
+                        </div>
+                        <div class="color-opt" data-color="green">
+                            <div class="wizard wizard--green wizard--idle swatch-wizard"></div>
+                            <span>GREEN</span>
+                        </div>
+                        <div class="color-opt" data-color="grey">
+                            <div class="wizard wizard--grey wizard--idle swatch-wizard"></div>
+                            <span>GREY</span>
+                        </div>
+                        <div class="color-opt" data-color="purple">
+                            <div class="wizard wizard--purple wizard--idle swatch-wizard"></div>
+                            <span>PURPLE</span>
+                        </div>
                     </div>
-                    <div class="color-opt" data-color="green">
-                        <div class="wizard wizard--green wizard--idle swatch-wizard"></div>
-                        <span>GREEN</span>
-                    </div>
-                    <div class="color-opt" data-color="grey">
-                        <div class="wizard wizard--grey wizard--idle swatch-wizard"></div>
-                        <span>GREY</span>
-                    </div>
-                    <div class="color-opt" data-color="purple">
-                        <div class="wizard wizard--purple wizard--idle swatch-wizard"></div>
-                        <span>PURPLE</span>
-                    </div>
-                </div>
 
-                <div class="reg-btns">
-                    <div class="pixel-btn" id="reg-back">BACK</div>
-                    <div class="pixel-btn" id="reg-confirm">CONFIRM</div>
-                </div>
-                <div class="reg-error hidden" id="reg-error">ENTER A NAME &amp; PICK A WIZARD</div>
-            </section>
-
-            <!-- ============ DIFFICULTY MENU ============ -->
-            <section id="menu-screen" class="screen hidden">
-                <div class="menu-title">CHOOSE YOUR DIFFICULTY</div>
-                <div class="menu-greeting" id="menu-greeting">WELCOME</div>
-                <div class="staff-grid" id="staff-grid">
-                    <div class="staff-opt" data-difficulty="easy">
-                        <img class="staff-img" src="img/staffs/staff-easy.png" alt="Easy staff">
-                        <span class="staff-label">EASY</span>
+                    <div class="reg-btns">
+                        <div class="pixel-btn" id="reg-back">BACK</div>
+                        <div class="pixel-btn" id="reg-confirm">CONFIRM</div>
                     </div>
-                    <div class="staff-opt" data-difficulty="medium">
-                        <img class="staff-img" src="img/staffs/staff-medium.png" alt="Medium staff">
-                        <span class="staff-label">MEDIUM</span>
-                    </div>
-                    <div class="staff-opt" data-difficulty="hard">
-                        <img class="staff-img" src="img/staffs/staff-hard.png" alt="Hard staff">
-                        <span class="staff-label">HARD</span>
-                    </div>
-                    <div class="staff-opt" data-difficulty="impossible">
-                        <img class="staff-img" src="img/staffs/staff-impossible.png" alt="Impossible staff">
-                        <span class="staff-label">IMPOSSIBLE</span>
-                    </div>
-                </div>
-                <div class="menu-foot" id="menu-quit">&#9664; QUIT TO TITLE</div>
-            </section>
+                    <div class="reg-error hidden" id="reg-error">ENTER A NAME &amp; PICK A WIZARD</div>
+                </section>
 
-            <!-- ============ BATTLE ============ -->
-            <section id="battle-screen" class="screen hidden">
-                <!-- persistent stance reminder: what the player is defending -->
-                <div id="stance-banner" class="stance-banner hidden"></div>
+                <!-- ============ DIFFICULTY MENU ============ -->
+                <section id="menu-screen" class="screen hidden">
+                    <div class="menu-title">CHOOSE YOUR DIFFICULTY</div>
+                    <div class="menu-greeting" id="menu-greeting">WELCOME</div>
+                    <div class="staff-grid" id="staff-grid">
+                        <div class="staff-opt" data-difficulty="easy">
+                            <img class="staff-img" src="img/staffs/staff-easy.png" alt="Easy staff">
+                            <span class="staff-label">EASY</span>
+                        </div>
+                        <div class="staff-opt" data-difficulty="medium">
+                            <img class="staff-img" src="img/staffs/staff-medium.png" alt="Medium staff">
+                            <span class="staff-label">MEDIUM</span>
+                        </div>
+                        <div class="staff-opt" data-difficulty="hard">
+                            <img class="staff-img" src="img/staffs/staff-hard.png" alt="Hard staff">
+                            <span class="staff-label">HARD</span>
+                        </div>
+                        <div class="staff-opt" data-difficulty="impossible">
+                            <img class="staff-img" src="img/staffs/staff-impossible.png" alt="Impossible staff">
+                            <span class="staff-label">IMPOSSIBLE</span>
+                        </div>
+                    </div>
+                    <div class="menu-foot" id="menu-quit">&#9664; QUIT TO TITLE</div>
+                </section>
 
-                <div class="scene" id="scene">
-                    <div id="fx-container"></div>
+                <!-- ============ BATTLE ============ -->
+                <section id="battle-screen" class="screen hidden">
+                    <!-- persistent stance reminder: what the player is defending -->
+                    <div id="stance-banner" class="stance-banner hidden"></div>
 
-                    <!-- ENEMY HUD -->
-                    <div class="hud" id="enemy-hud">
-                        <div class="name"><span id="enemy-name">ENEMY WIZARD</span></div>
-                        <div class="level" id="enemy-lvl">Lv?</div>
-                        <div class="hp-box">
-                            <span style="margin-right:2px; color:#e6ae27;">HP</span>
-                            <div class="hp-bar-bg">
-                                <div id="enemy-hp-bar" class="hp-fill"></div>
+                    <div class="scene" id="scene">
+                        <div id="fx-container"></div>
+
+                        <!-- ENEMY HUD -->
+                        <div class="hud" id="enemy-hud">
+                            <div class="name"><span id="enemy-name">ENEMY WIZARD</span></div>
+                            <div class="level" id="enemy-lvl">Lv?</div>
+                            <div class="hp-box">
+                                <span style="margin-right:2px; color:#e6ae27;">HP</span>
+                                <div class="hp-bar-bg">
+                                    <div id="enemy-hp-bar" class="hp-fill"></div>
+                                </div>
                             </div>
                         </div>
+
+                        <div id="enemy-wizard" class="wizard battle-wizard wizard--idle is-enemy"></div>
+                        <div id="player-wizard" class="wizard battle-wizard wizard--idle is-player"></div>
+
+                        <!-- PLAYER HUD -->
+                        <div class="hud" id="player-hud">
+                            <div class="name"><span id="player-name">PLAYER</span></div>
+                            <div class="level" id="player-lvl">Lv5</div>
+                            <div class="hp-box">
+                                <span style="margin-right:2px; color:#e6ae27;">HP</span>
+                                <div class="hp-bar-bg">
+                                    <div id="player-hp-bar" class="hp-fill"></div>
+                                </div>
+                            </div>
+                            <div id="player-hp-text">--/--</div>
+                        </div>
                     </div>
 
-                    <div id="enemy-wizard" class="wizard battle-wizard wizard--idle is-enemy"></div>
-                    <div id="player-wizard" class="wizard battle-wizard wizard--idle is-player"></div>
+                    <!-- Dialog + Menus -->
+                    <div id="dialog-box">
+                        <div id="text-content">...</div>
+                        <div id="advance-arrow" class="hidden">&#9660;</div>
 
-                    <!-- PLAYER HUD -->
-                    <div class="hud" id="player-hud">
-                        <div class="name"><span id="player-name">PLAYER</span></div>
-                        <div class="level" id="player-lvl">Lv5</div>
-                        <div class="hp-box">
-                            <span style="margin-right:2px; color:#e6ae27;">HP</span>
-                            <div class="hp-bar-bg">
-                                <div id="player-hp-bar" class="hp-fill"></div>
+                        <!-- argument / claim input (shown during STATE YOUR CLAIM + FIGHT) -->
+                        <div id="debate-input-wrap" class="debate-input hidden">
+                            <textarea id="debate-arg-input" maxlength="280" placeholder="CAST YOUR ARGUMENT..."
+                                autocomplete="off"></textarea>
+                            <button id="debate-submit" class="debate-submit" type="button">CAST</button>
+                            <button id="pick-for-me" class="debate-submit" type="button">PICK FOR ME</button>
+                        </div>
+
+                        <!-- side picker: pick a stance to auto-start the duel, no typing -->
+                        <div id="side-picker" class="side-picker hidden">
+                            <div class="side-picker-prompt">PICK YOUR SIDE</div>
+                            <div class="side-picker-btns">
+                                <button id="side-for" class="side-btn" type="button"></button>
+                                <button id="side-against" class="side-btn" type="button"></button>
                             </div>
                         </div>
-                        <div id="player-hp-text">--/--</div>
+
+                        <!-- You.com citation(s) for the latest verdict -->
+                        <div id="citation-box" class="citation-box hidden"></div>
+
+                        <div id="action-menu" class="hidden">
+                            <div class="menu-item" data-act="fight">FIGHT</div>
+                            <div class="menu-item" data-act="pkmn">WIZARD</div>
+                            <div class="menu-item" data-act="pack">PACK</div>
+                            <div class="menu-item" data-act="run">RUN</div>
+                        </div>
+
+                        <div id="move-menu" class="hidden"></div>
+
+                        <!-- tidy per-round result for BOTH sides (verdict + rationale + dmg) -->
+                        <div id="round-result" class="round-result hidden"></div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Dialog + Menus -->
-                <div id="dialog-box">
-                    <div id="text-content">...</div>
-                    <div id="advance-arrow" class="hidden">&#9660;</div>
+                <!-- ============ LEADERBOARD ============ -->
+                <section id="leaderboard-screen" class="screen lb-screen hidden">
+                    <div class="lb-title">CHAMPIONS</div>
+                    <div id="lb-list" class="lb-list"></div>
+                    <div class="pixel-btn lb-back" id="lb-quit">&#9664; QUIT TO TITLE</div>
+                </section>
 
-                    <!-- argument / claim input (shown during STATE YOUR CLAIM + FIGHT) -->
-                    <div id="debate-input-wrap" class="debate-input hidden">
-                        <textarea id="debate-arg-input" maxlength="280" placeholder="CAST YOUR ARGUMENT..." autocomplete="off"></textarea>
-                        <button id="debate-submit" class="debate-submit" type="button">CAST</button>
-                        <button id="pick-for-me" class="debate-submit" type="button">PICK FOR ME</button>
+                <!-- ============ ACCOUNT ============ -->
+                <section id="account-screen" class="screen acct-screen hidden">
+                    <div class="acct-title">ACCOUNT</div>
+
+                    <!-- LOGGED-OUT state: email/password + OAuth -->
+                    <div id="acct-loggedout">
+                        <div class="acct-sub">SAVE YOUR PROGRESS</div>
+
+                        <input type="email" id="acct-email" placeholder="EMAIL" autocomplete="off" autocapitalize="off"
+                            spellcheck="false">
+                        <input type="password" id="acct-password" placeholder="PASSWORD" autocomplete="off">
+
+                        <div class="acct-btns">
+                            <div class="pixel-btn" id="acct-login">LOG IN</div>
+                            <div class="pixel-btn" id="acct-signup">SIGN UP</div>
+                        </div>
+
+                        <div class="acct-divider">OAUTH = LEADERBOARD</div>
+                        <div class="acct-oauth">
+                            <div class="pixel-btn acct-oauth-btn" id="acct-google">SIGN IN WITH GOOGLE</div>
+                            <div class="pixel-btn acct-oauth-btn" id="acct-github">SIGN IN WITH GITHUB</div>
+                        </div>
+                        <div class="acct-note">OAUTH NEEDED TO JOIN THE LEADERBOARD</div>
+
+                        <div class="acct-error hidden" id="acct-error"></div>
                     </div>
 
-                    <!-- side picker: pick a stance to auto-start the duel, no typing -->
-                    <div id="side-picker" class="side-picker hidden">
-                        <div class="side-picker-prompt">PICK YOUR SIDE</div>
-                        <div class="side-picker-btns">
-                            <button id="side-for" class="side-btn" type="button"></button>
-                            <button id="side-against" class="side-btn" type="button"></button>
+                    <!-- LOGGED-IN state: email + sign out -->
+                    <div id="acct-loggedin" class="hidden">
+                        <div class="acct-sub">SIGNED IN AS</div>
+                        <div class="acct-email-display" id="acct-email-display">--</div>
+                        <div class="acct-rank-note" id="acct-rank-note"></div>
+                        <div class="acct-btns">
+                            <div class="pixel-btn" id="acct-signout">SIGN OUT</div>
                         </div>
                     </div>
 
-                    <!-- You.com citation(s) for the latest verdict -->
-                    <div id="citation-box" class="citation-box hidden"></div>
+                    <div class="acct-foot" id="acct-guest">&#9664; PLAY AS GUEST</div>
+                </section>
 
-                    <div id="action-menu" class="hidden">
-                        <div class="menu-item" data-act="fight">FIGHT</div>
-                        <div class="menu-item" data-act="pkmn">WIZARD</div>
-                        <div class="menu-item" data-act="pack">PACK</div>
-                        <div class="menu-item" data-act="run">RUN</div>
-                    </div>
-
-                    <div id="move-menu" class="hidden"></div>
-
-                    <!-- tidy per-round result for BOTH sides (verdict + rationale + dmg) -->
-                    <div id="round-result" class="round-result hidden"></div>
-                </div>
-            </section>
-
-            <!-- ============ LEADERBOARD ============ -->
-            <section id="leaderboard-screen" class="screen lb-screen hidden">
-                <div class="lb-title">CHAMPIONS</div>
-                <div id="lb-list" class="lb-list"></div>
-                <div class="pixel-btn lb-back" id="lb-quit">&#9664; QUIT TO TITLE</div>
-            </section>
-
-            <!-- ============ ACCOUNT ============ -->
-            <section id="account-screen" class="screen acct-screen hidden">
-                <div class="acct-title">ACCOUNT</div>
-
-                <!-- LOGGED-OUT state: email/password + OAuth -->
-                <div id="acct-loggedout">
-                    <div class="acct-sub">SAVE YOUR PROGRESS</div>
-
-                    <input type="email" id="acct-email" placeholder="EMAIL" autocomplete="off"
-                        autocapitalize="off" spellcheck="false">
-                    <input type="password" id="acct-password" placeholder="PASSWORD" autocomplete="off">
-
-                    <div class="acct-btns">
-                        <div class="pixel-btn" id="acct-login">LOG IN</div>
-                        <div class="pixel-btn" id="acct-signup">SIGN UP</div>
-                    </div>
-
-                    <div class="acct-divider">OAUTH = LEADERBOARD</div>
-                    <div class="acct-oauth">
-                        <div class="pixel-btn acct-oauth-btn" id="acct-google">SIGN IN WITH GOOGLE</div>
-                        <div class="pixel-btn acct-oauth-btn" id="acct-github">SIGN IN WITH GITHUB</div>
-                    </div>
-                    <div class="acct-note">OAUTH NEEDED TO JOIN THE LEADERBOARD</div>
-
-                    <div class="acct-error hidden" id="acct-error"></div>
-                </div>
-
-                <!-- LOGGED-IN state: email + sign out -->
-                <div id="acct-loggedin" class="hidden">
-                    <div class="acct-sub">SIGNED IN AS</div>
-                    <div class="acct-email-display" id="acct-email-display">--</div>
-                    <div class="acct-rank-note" id="acct-rank-note"></div>
-                    <div class="acct-btns">
-                        <div class="pixel-btn" id="acct-signout">SIGN OUT</div>
-                    </div>
-                </div>
-
-                <div class="acct-foot" id="acct-guest">&#9664; PLAY AS GUEST</div>
-            </section>
-
-        </div>
+            </div>
         </div>
 
         <!-- ============ YOU.COM SOURCES SIDE PANEL ============ -->
