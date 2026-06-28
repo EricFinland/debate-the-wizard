@@ -82,9 +82,24 @@ async function searchYouCom(query: string): Promise<Citation[]> {
 function buildSearchQuery(argument: string): string {
   return argument.replace(/\s+/g, " ").trim().slice(0, MAX_QUERY);
 }
-async function judgeVerdict(argument: string, citations: Citation[]) {
+// Map the room's difficulty to a judge leniency instruction. Defaults to balanced (adept).
+function leniencyFor(difficulty: string): string {
+  switch ((difficulty || "").toLowerCase()) {
+    case "novice":
+    case "easy":
+      return "LENIENCY: Be GENEROUS. If the argument is reasonable and broadly consistent with the snippets, rule 'supported'. Only rule 'misleading' when a snippet CLEARLY contradicts it. Give the player the benefit of the doubt and lean toward 'supported' on close calls.";
+    case "archmage":
+      return "LENIENCY: Be STRICT. Require a snippet to clearly and directly back the claim before ruling 'supported'. Rule 'misleading' whenever a snippet contradicts it, even partially. Do not give the benefit of the doubt on close calls.";
+    case "impossible":
+      return "LENIENCY: Be VERY STRICT. Demand precise, well-evidenced claims with a snippet that explicitly and unambiguously supports the exact claim. Rule 'unsupported' for any vagueness, overreach, or weak evidence, and 'misleading' for any contradiction or distortion. No benefit of the doubt.";
+    case "adept":
+    default:
+      return "LENIENCY: Be balanced and fair. Rule 'supported' when a snippet clearly backs the claim, 'unsupported' when none addresses it, and 'misleading' when a snippet contradicts it.";
+  }
+}
+async function judgeVerdict(argument: string, citations: Citation[], difficulty: string) {
   const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
-  const sys = 'You are a debate fact-checker and scorer. Given an ARGUMENT and SEARCH SNIPPETS: 1) extract the single most important factual claim; 2) rule supported/unsupported/misleading; 3) score 0-10 on factual_accuracy, logic, evidence, persuasiveness; 4) name any fallacies. Return ONLY JSON: {"key_claim":"...","verdict":"supported|unsupported|misleading","rationale":"<=20 words","citation_index":<int or null>,"scores":{"factual_accuracy":0,"logic":0,"evidence":0,"persuasiveness":0},"fallacies":[]}. supported = a snippet clearly backs the claim; unsupported = none addresses it; misleading = a snippet contradicts it. citation_index is the snippet you relied on, or null.';
+  const sys = 'You are a debate fact-checker and scorer. Given an ARGUMENT and SEARCH SNIPPETS: 1) extract the single most important factual claim; 2) rule supported/unsupported/misleading; 3) score 0-10 on factual_accuracy, logic, evidence, persuasiveness; 4) name any fallacies. Return ONLY JSON: {"key_claim":"...","verdict":"supported|unsupported|misleading","rationale":"<=20 words","citation_index":<int or null>,"scores":{"factual_accuracy":0,"logic":0,"evidence":0,"persuasiveness":0},"fallacies":[]}. supported = a snippet clearly backs the claim; unsupported = none addresses it; misleading = a snippet contradicts it. citation_index is the snippet you relied on, or null. ' + leniencyFor(difficulty);
   const raw = await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: `ARGUMENT:\n${argument}\n\nSEARCH SNIPPETS:\n${list || "(none found)"}` }]);
   const p = parseJson<any>(raw);
   if (!p) return { key_claim: argument.slice(0, 200), verdict: "unsupported" as Verdict, rationale: "Judge response could not be parsed.", scores: ZERO_SCORES, fallacies: [] as string[], citation_index: null as number | null };
@@ -98,12 +113,12 @@ async function judgeVerdict(argument: string, citations: Citation[]) {
   };
 }
 /** Full self-contained judge pipeline: search (query = the argument itself) -> judge. ONE LLM call total. */
-async function judgePipeline(argument: string, _topic: string) {
+async function judgePipeline(argument: string, _topic: string, difficulty: string) {
   const query = buildSearchQuery(argument);
   let citations: Citation[] = [];
   try { citations = await searchYouCom(query); } catch { citations = []; }
   if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null, search_query: query };
-  const r = await judgeVerdict(argument, citations);
+  const r = await judgeVerdict(argument, citations, difficulty);
   return { key_claim: r.key_claim, verdict: r.verdict, rationale: r.rationale, points: SCORE[r.verdict], scores: r.scores, fallacies: r.fallacies, citations, citation_index: r.citation_index, search_query: query };
 }
 
@@ -150,7 +165,7 @@ export default async function (req: Request): Promise<Response> {
   if (!Number.isFinite(round_no) || round_no < 1) return json({ error: "'round_no' must be >= 1." }, 400);
 
   try {
-    const [room] = await dbSelect("rooms", `id=eq.${room_id}&select=id,topic,status,rounds_total`);
+    const [room] = await dbSelect("rooms", `id=eq.${room_id}&select=id,topic,status,rounds_total,difficulty`);
     if (!room) return json({ error: "Room not found." }, 404);
     if (room.status === "finished") return json({ error: "This match is already finished." }, 409);
     if (round_no > room.rounds_total) return json({ error: `round_no exceeds rounds_total (${room.rounds_total}).` }, 400);
@@ -158,7 +173,7 @@ export default async function (req: Request): Promise<Response> {
     const dupe = await dbSelect("claims", `room_id=eq.${room_id}&round_no=eq.${round_no}&author=eq.player&select=id`);
     if (dupe.length) return json({ error: "You already argued this round." }, 409);
 
-    const ruling = await judgePipeline(argument, room.topic);
+    const ruling = await judgePipeline(argument, room.topic, room.difficulty ?? "adept");
 
     const [claim] = await dbInsert("claims", [{
       room_id, round_no, author: "player", argument,

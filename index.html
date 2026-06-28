@@ -232,7 +232,11 @@
         </div>
 
         <!-- ============ YOU.COM SOURCES SIDE PANEL ============ -->
-        <aside id="side-panel">
+        <!-- starts HIDDEN (shared contract): battle.js removes 'is-hidden'
+             only after the first argument produces citations, and re-adds it
+             on duel reset / leaving battle. fit.js reads this class to decide
+             whether to reserve the panel width. -->
+        <aside id="side-panel" class="is-hidden">
             <div class="side-panel-header">YOU.COM SOURCES</div>
             <div id="side-citations"></div>
         </aside>

@@ -10,12 +10,18 @@ const KeyboardNav = (() => {
         let items = [];
         let index = 0;
         let columns = options.columns || 1;
+        // bound pointer handler so we can detach it from old item sets
+        const onPointer = event => {
+            const i = items.indexOf(event.currentTarget);
+            if (i !== -1) focus(i);
+        };
 
         function selectable(item) {
             return item && !item.classList.contains('hidden') && !item.classList.contains('disabled');
         }
 
         function clear() {
+            // clear the active class from EVERY tracked item so no stale highlight lingers
             items.forEach(item => item.classList.remove(ACTIVE_CLASS));
         }
 
@@ -30,10 +36,27 @@ const KeyboardNav = (() => {
             items[index].classList.add(ACTIVE_CLASS);
         }
 
+        function detachPointer() {
+            items.forEach(item => {
+                item.removeEventListener('mousemove', onPointer);
+                item.removeEventListener('mousedown', onPointer);
+            });
+        }
+
         function setItems(nextItems, nextColumns = columns) {
+            // detach from the OLD set, clear THEIR highlight, then rebind to the new set
+            detachPointer();
             clear();
             items = Array.from(nextItems).filter(Boolean);
             columns = nextColumns || 1;
+            // keep the keyboard highlight in lockstep with the mouse so the
+            // highlighted box is always the one the user is actually on
+            items.forEach(item => {
+                item.addEventListener('mousemove', onPointer);
+                item.addEventListener('mousedown', onPointer);
+            });
+            // always reset selection to the first selectable item for the new screen/menu
+            index = 0;
             focus(0);
         }
 
@@ -66,6 +89,7 @@ const KeyboardNav = (() => {
         }
 
         function reset() {
+            detachPointer();
             clear();
             items = [];
             index = 0;

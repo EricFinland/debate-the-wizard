@@ -39,20 +39,21 @@
 .debate-input {
     display: flex;
     align-items: stretch;
-    gap: 4px;
+    gap: 6px;
     width: 100%;
     max-width: 100%;
-    margin-top: 2px;
+    margin-top: 3px;
     flex-wrap: wrap;
 }
 
 .debate-input textarea,
 .debate-input input {
-    flex: 1 1 140px;
+    /* textarea takes the full row; buttons wrap underneath on tight widths */
+    flex: 1 1 100%;
     min-width: 0;
     max-width: 100%;
-    height: 44px;
-    max-height: 44px;
+    height: 40px;
+    max-height: 40px;
     resize: none;
     background: var(--debate-paper);
     color: var(--debate-ink);
@@ -78,14 +79,14 @@
     box-shadow: inset -2px -2px 0 0 #c8c8c8, 0 0 0 2px var(--debate-gold);
 }
 
-/* chunky SUBMIT button */
+/* chunky SUBMIT button (shares the row under the textarea with PICK FOR ME) */
 .debate-submit {
-    flex: 0 0 auto;
-    align-self: stretch;
+    flex: 1 1 0;
+    min-height: 22px;
     background: var(--debate-green);
     color: var(--debate-ink);
     border: 2px solid var(--debate-ink);
-    padding: 0 10px;
+    padding: 4px 10px;
     font-family: 'GameFont', fantasy;
     font-size: 8px;
     text-transform: uppercase;
@@ -118,12 +119,12 @@
    ---------------------------------------- */
 .pick-for-me,
 #pick-for-me {
-    flex: 0 0 auto;
-    align-self: stretch;
+    flex: 1 1 0;
+    min-height: 22px;
     background: var(--diff-impossible);
     color: var(--debate-gold);
     border: 2px solid var(--debate-ink);
-    padding: 0 9px;
+    padding: 4px 9px;
     font-family: 'GameFont', fantasy;
     font-size: 8px;
     text-transform: uppercase;
@@ -248,6 +249,13 @@
    SIDE PANEL (You.com sources, right of the Game Boy)
    filled by battle.js showCitations() into #side-citations
    ---------------------------------------- */
+/* hidden until battle.js reveals it after the first cast produces citations.
+   battle.js may use .is-hidden or .hidden; support both. */
+#side-panel.is-hidden,
+#side-panel.hidden {
+    display: none !important;
+}
+
 #side-panel {
     display: flex;
     flex-direction: column;
@@ -328,43 +336,62 @@
     padding: 14px 8px;
 }
 
-/* one compact pixel source card per citation block.
-   battle.js emits .citation-title, .citation-domain, .citation-snippet
-   as a flat run; the title starts each new card. */
+/* One compact pixel source card per citation.
+   battle.js builds: #side-citations > .side-citation-group > .side-citation
+                     > (.citation-title, .citation-domain, .citation-snippet)
+   Newest group is prepended. Each .side-citation is a self-contained card. */
+#side-citations .side-citation-group {
+    display: block;
+}
+
+/* gap between turns' groups */
+#side-citations .side-citation-group + .side-citation-group {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px dashed #2c3552;
+}
+
+#side-citations .side-citation {
+    display: block;
+    border: 2px solid #000;
+    box-shadow: -2px -2px 0 0 #11151f inset, 2px 2px 0 0 #39456a inset;
+    margin-bottom: 9px;
+    background: #1d2333;
+}
+
+#side-citations .side-citation:last-child {
+    margin-bottom: 0;
+}
+
 #side-citations .citation-title {
     display: block;
     background: #232a40;
-    border: 2px solid #000;
-    box-shadow: -2px -2px 0 0 #11151f inset, 2px 2px 0 0 #39456a inset;
-    margin: 0 0 0 0;
-    padding: 6px 7px 5px;
+    padding: 6px 8px 5px;
     font-family: 'GameFont', fantasy;
     font-size: 8px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: #fff;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-}
-
-/* spacing between cards: a title that follows a previous card gets a gap */
-#side-citations .citation-snippet + .citation-title,
-#side-citations .citation-domain + .citation-title {
-    margin-top: 10px;
+    border-bottom: 2px solid #000;
+    /* keep titles to a single readable line */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #side-citations .citation-domain {
     display: block;
     background: #232a40;
-    border: 2px solid #000;
-    border-top: none;
-    padding: 4px 7px;
+    padding: 4px 8px 5px;
     font-family: 'GameFont', fantasy;
-    font-size: 7px;
+    font-size: 8px;
     line-height: 1.4;
     color: var(--debate-gold);
     text-decoration: underline;
-    word-break: break-all;
+    border-bottom: 2px solid #000;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #side-citations .citation-domain:hover {
@@ -372,19 +399,23 @@
     background: #2c3552;
 }
 
+/* snippet: legible, clamped to 2 lines, no scroll.
+   line-height 1.5 * 8px = 12px/line; 2 lines -> 24px cap.
+   max-height is the hard guarantee; -webkit-line-clamp adds the ellipsis
+   where the engine honors it. */
 #side-citations .citation-snippet {
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    max-height: 24px;
+    overflow: hidden;
     background: #1d2333;
-    border: 2px solid #000;
-    border-top: none;
-    padding: 6px 7px 7px;
-    margin-bottom: 0;
-    max-height: none;
-    overflow: visible;
+    padding: 6px 8px 7px;
     font-family: 'GameFont', fantasy;
-    font-size: 7px;
-    line-height: 1.6;
-    color: #c4ccdf;
+    font-size: 8px;
+    line-height: 12px;
+    color: #cdd5e8;
     word-break: break-word;
     overflow-wrap: anywhere;
 }
@@ -485,12 +516,15 @@
 .round-result {
     position: absolute;
     inset: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     background: #fff;
     border: 2px solid var(--debate-ink);
     border-radius: 4px;
-    padding: 6px 7px;
-    overflow-y: auto;
-    scrollbar-width: thin;
+    padding: 5px 6px;
+    /* must FIT with no scroll: never let content force a scrollbar */
+    overflow: hidden;
     font-family: 'GameFont', fantasy;
     z-index: 7;
 }
@@ -499,34 +533,28 @@
     display: none;
 }
 
-.round-result::-webkit-scrollbar {
-    width: 5px;
-}
-
-.round-result::-webkit-scrollbar-thumb {
-    background: var(--debate-ink);
-}
-
 .round-result .rr-title {
+    flex: 0 0 auto;
     font-size: 8px;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--debate-ink);
     border-bottom: 2px solid var(--debate-ink);
     padding-bottom: 3px;
-    margin-bottom: 5px;
 }
 
 .round-result .rr-row {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
     border: 2px solid var(--debate-ink);
     border-left-width: 4px;
-    padding: 4px 5px 5px;
-    margin-bottom: 5px;
+    padding: 3px 5px;
     background: var(--debate-paper);
-}
-
-.round-result .rr-row:last-child {
-    margin-bottom: 0;
+    overflow: hidden;
 }
 
 /* left accent stripe by verdict */
@@ -537,9 +565,8 @@
 .round-result .rr-head {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 4px;
-    margin-bottom: 3px;
 }
 
 .round-result .rr-side {
@@ -583,21 +610,19 @@
 .round-result .rr-dmg-dealt { background: #eafbe9; color: #1e6b25; }
 .round-result .rr-dmg-taken { background: #fdeae7; color: #8a241a; }
 
+/* claim text dropped from the compact card so the result fits with no scroll */
 .round-result .rr-claim {
-    font-size: 7px;
-    line-height: 1.45;
-    color: var(--debate-ink);
-    margin-bottom: 3px;
-    word-break: break-word;
-    overflow-wrap: anywhere;
+    display: none;
 }
 
+/* one-line rationale with ellipsis (battle.js already trims to a short line) */
 .round-result .rr-rationale {
-    font-size: 7px;
-    line-height: 1.5;
+    font-size: 8px;
+    line-height: 1.4;
     color: #404040;
-    word-break: break-word;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ----------------------------------------

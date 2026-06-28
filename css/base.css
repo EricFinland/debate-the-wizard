@@ -53,6 +53,17 @@ body {
     padding: 20px;
 }
 
+/* Side panel show-after-cast:
+   #side-panel starts hidden and battle.js reveals it only after the first
+   argument produces citations (and re-hides on duel reset / leaving battle).
+   When hidden it is fully removed from layout so #game-container centers the
+   Game Boy across the whole viewport (see js/fit.js panelVisible()).
+   battle.js must add/remove the 'hidden' class (and dispatch a 'resize'). */
+#side-panel.hidden,
+#side-panel.is-hidden {
+    display: none !important;
+}
+
 /* wrapper that reserves real layout space for the scaled canvas */
 #gb-wrap {
     position: relative;

@@ -22,6 +22,26 @@
         return Math.min(420, Math.max(280, window.innerWidth * 0.26));
     }
 
+    /* The side panel is hidden until the first argument produces citations.
+       It starts hidden (class 'hidden'/'is-hidden' -> display:none) and
+       battle.js reveals it by removing that class + dispatching 'resize'.
+       Reserve its width ONLY while it is actually laid out (visible). */
+    function panelVisible() {
+        var panel = document.getElementById('side-panel');
+        if (!panel) {
+            return false;
+        }
+        if (panel.classList.contains('hidden') ||
+            panel.classList.contains('is-hidden')) {
+            return false;
+        }
+        /* offsetParent is null when the element (or an ancestor) is display:none */
+        if (panel.offsetParent === null && panel.offsetWidth === 0) {
+            return false;
+        }
+        return getComputedStyle(panel).display !== 'none';
+    }
+
     function fit() {
         var gb = document.getElementById('game-boy');
         var wrap = document.getElementById('gb-wrap');
@@ -29,7 +49,11 @@
             return;
         }
 
-        var reserved = sidePanelWidth() + GAP + PADDING;
+        /* Center across the FULL viewport when the panel is hidden (reserve 0);
+           reserve the panel's width + gap only when it is visible. */
+        var reserved = panelVisible()
+            ? (sidePanelWidth() + GAP + PADDING)
+            : PADDING;
         var availW = window.innerWidth - reserved;
         var availH = window.innerHeight - PADDING;
 
