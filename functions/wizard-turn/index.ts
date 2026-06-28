@@ -33,8 +33,8 @@ type Verdict = keyof typeof SCORE;
 
 const env = (k: string, fallback = "") => Deno.env.get(k) ?? fallback;
 
-const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-3.5-sonnet");
-const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-3.5-haiku");
+const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
+const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 
 const BASE = env("INSFORGE_API_URL").replace(/\/+$/, "");
@@ -105,13 +105,14 @@ function parseJson<T>(text: string): T | null {
   }
 }
 
-/** Call the InsForge Model Gateway (OpenAI-compatible chat completions). */
+/** Call the model gateway — OpenRouter, using the InsForge-provisioned key. */
 async function chat(model: string, messages: { role: string; content: string }[], temperature = 0.6): Promise<string> {
-  if (!BASE || !KEY) throw new Error("Model gateway not configured (INSFORGE_API_URL / INSFORGE_API_KEY).");
+  const key = env("OPENROUTER_API_KEY");
+  if (!key) throw new Error("OPENROUTER_API_KEY not configured.");
 
-  const res = await fetch(`${BASE}/v1/chat/completions`, {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, messages, temperature }),
   });
   if (!res.ok) {
@@ -122,16 +123,14 @@ async function chat(model: string, messages: { role: string; content: string }[]
   return data?.choices?.[0]?.message?.content ?? "";
 }
 
-/** Hit You.com Search and normalize to citations (same shape/handling as judge-claim). */
+/** Hit You.com Search (GET) and normalize to citations (same shape/handling as judge-claim). */
 async function searchYouCom(query: string): Promise<Citation[]> {
   const key = env("YOUCOM_API_KEY");
   if (!key) throw new Error("YOUCOM_API_KEY not set.");
 
-  const res = await fetch("https://api.you.com/v1/search", {
-    method: "POST",
-    headers: { "X-API-Key": key, "Content-Type": "application/json" },
-    body: JSON.stringify({ query, count: SEARCH_COUNT }),
-  });
+  const url = new URL("https://api.you.com/v1/search");
+  url.searchParams.set("query", query);
+  const res = await fetch(url, { headers: { "X-API-Key": key } });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`You.com ${res.status}: ${detail.slice(0, 300)}`);
@@ -198,17 +197,41 @@ async function writeRebuttal(topic: string, opponent_argument: string, citations
   return raw.trim();
 }
 
-/** Self-judge: run the wizard's argument through the deployed judge-claim function (same standard). */
-async function selfJudge(argument: string, topic: string): Promise<any | null> {
-  if (!BASE || !KEY) return null;
+/** Build a search query targeting the argument's key factual claim. */
+async function extractSearchQuery(argument: string, topic: string): Promise<string> {
+  const sys = "You turn a debate argument into ONE concise web-search query (max 12 words) targeting its single most important factual claim. Reply with ONLY the query text, no quotes.";
   try {
-    const res = await fetch(`${BASE}/functions/judge-claim`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ argument, topic }),
-    });
-    if (!res.ok) return null;
-    return await res.json();
+    const q = (await chat(EXTRACT_MODEL, [{ role: "system", content: sys }, { role: "user", content: `TOPIC: ${topic || "(unspecified)"}\nARGUMENT: ${argument}` }], 0.2)).trim().replace(/^["']|["']$/g, "");
+    return q || argument.slice(0, 200);
+  } catch { return argument.slice(0, 200); }
+}
+
+/** The judge call: extract claim + rule + score against the snippets. */
+async function judgeVerdict(argument: string, citations: Citation[]) {
+  const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
+  const sys = 'You are a debate fact-checker and scorer. Given an ARGUMENT and SEARCH SNIPPETS: 1) extract the single most important factual claim; 2) rule supported/unsupported/misleading; 3) score 0-10 on factual_accuracy, logic, evidence, persuasiveness; 4) name any fallacies. Return ONLY JSON: {"key_claim":"...","verdict":"supported|unsupported|misleading","rationale":"<=20 words","citation_index":<int or null>,"scores":{"factual_accuracy":0,"logic":0,"evidence":0,"persuasiveness":0},"fallacies":[]}. supported = a snippet clearly backs the claim; unsupported = none addresses it; misleading = a snippet contradicts it.';
+  const raw = await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: `ARGUMENT:\n${argument}\n\nSEARCH SNIPPETS:\n${list || "(none found)"}` }], 0);
+  const p = parseJson<any>(raw);
+  if (!p) return { key_claim: argument.slice(0, 200), verdict: "unsupported" as Verdict, rationale: "Judge response could not be parsed.", scores: ZERO_SCORES, fallacies: [] as string[], citation_index: null as number | null };
+  const verdict: Verdict = (["supported", "unsupported", "misleading"] as const).includes(p.verdict) ? p.verdict : "unsupported";
+  const ci = typeof p.citation_index === "number" && p.citation_index >= 0 && p.citation_index < citations.length ? p.citation_index : null;
+  return {
+    key_claim: p.key_claim || argument.slice(0, 200), verdict, rationale: p.rationale || "",
+    scores: { factual_accuracy: clampScore(p.scores?.factual_accuracy), logic: clampScore(p.scores?.logic), evidence: clampScore(p.scores?.evidence), persuasiveness: clampScore(p.scores?.persuasiveness) },
+    fallacies: Array.isArray(p.fallacies) ? p.fallacies.filter((f: unknown) => typeof f === "string" && (f as string).trim()).slice(0, 5) : [],
+    citation_index: ci,
+  };
+}
+
+/** Self-judge INLINE (no function-to-function call — InsForge runs all funcs as one deployment). */
+async function selfJudge(argument: string, topic: string): Promise<any | null> {
+  try {
+    const query = await extractSearchQuery(argument, topic);
+    let citations: Citation[] = [];
+    try { citations = await searchYouCom(query); } catch { citations = []; }
+    if (!citations.length) return { key_claim: query, verdict: "unsupported", rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [], citations: [], citation_index: null };
+    const r = await judgeVerdict(argument, citations);
+    return { key_claim: r.key_claim, verdict: r.verdict, rationale: r.rationale, points: SCORE[r.verdict], scores: r.scores, fallacies: r.fallacies, citations, citation_index: r.citation_index };
   } catch {
     return null;
   }

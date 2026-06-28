@@ -28,8 +28,8 @@ type Verdict = keyof typeof SCORE;
 
 const env = (k: string, fallback = "") => Deno.env.get(k) ?? fallback;
 
-const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-3.5-sonnet");
-const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-3.5-haiku");
+const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
+const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 
 const CORS = {
@@ -97,13 +97,12 @@ function parseJson<T>(text: string): T | null {
   }
 }
 
-/** Call the InsForge Model Gateway (OpenAI-compatible chat completions). */
+/** Call the model gateway — OpenRouter, using the InsForge-provisioned key. */
 async function chat(model: string, messages: { role: string; content: string }[], temperature = 0): Promise<string> {
-  const base = env("INSFORGE_API_URL").replace(/\/+$/, "");
-  const key = env("INSFORGE_API_KEY");
-  if (!base || !key) throw new Error("Model gateway not configured (INSFORGE_API_URL / INSFORGE_API_KEY).");
+  const key = env("OPENROUTER_API_KEY");
+  if (!key) throw new Error("OPENROUTER_API_KEY not configured.");
 
-  const res = await fetch(`${base}/v1/chat/completions`, {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, messages, temperature }),
@@ -116,16 +115,14 @@ async function chat(model: string, messages: { role: string; content: string }[]
   return data?.choices?.[0]?.message?.content ?? "";
 }
 
-/** Hit You.com Search and normalize to citations. */
+/** Hit You.com Search (GET) and normalize to citations. */
 async function searchYouCom(query: string): Promise<Citation[]> {
   const key = env("YOUCOM_API_KEY");
   if (!key) throw new Error("YOUCOM_API_KEY not set.");
 
-  const res = await fetch("https://api.you.com/v1/search", {
-    method: "POST",
-    headers: { "X-API-Key": key, "Content-Type": "application/json" },
-    body: JSON.stringify({ query, count: SEARCH_COUNT }),
-  });
+  const url = new URL("https://api.you.com/v1/search");
+  url.searchParams.set("query", query);
+  const res = await fetch(url, { headers: { "X-API-Key": key } });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`You.com ${res.status}: ${detail.slice(0, 300)}`);
