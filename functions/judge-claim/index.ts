@@ -34,7 +34,12 @@ const env = (k: string, fallback = "") => Deno.env.get(k) ?? fallback;
 const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
 const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
-const YOUCOM_SEARCH_URL = env("YOUCOM_SEARCH_URL", "https://ydc-index.io/v1/search");
+const YOUCOM_SEARCH_URL = env("YOUCOM_SEARCH_URL", "https://api.you.com/v1/search");
+
+// InsForge native AI gateway (one platform — no separate provider key in app code).
+const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
+const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
+const KEY = env("INSFORGE_API_KEY");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -120,12 +125,11 @@ function parseJson<T>(text: string): T | null {
 
 /** Call the model gateway — OpenRouter, using the InsForge-provisioned key. */
 async function chat(model: string, messages: { role: string; content: string }[], temperature = 0): Promise<string> {
-  const key = env("OPENROUTER_API_KEY");
-  if (!key) throw new Error("OPENROUTER_API_KEY not configured.");
+  if (!KEY) throw new Error("INSFORGE_API_KEY not configured.");
 
-  const res = await fetch(`${base}/api/ai/chat/completion`, {
+  const res = await fetch(`${BASE}/api/ai/chat/completion`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, messages, temperature }),
   });
   if (!res.ok) {
