@@ -38,18 +38,26 @@ too:
 | Persistence | InsForge Postgres | rooms, players, claims, citations |
 | Secrets | InsForge Secret Manager | Holds the You.com key server-side |
 
+## Team & branches
+
+Three parallel tracks (see [docs/backend-architecture.md](docs/backend-architecture.md) for the contracts):
+
+| Track | Owns |
+|---|---|
+| **Frontend** | Next.js arena, side picker, citation panel, scorecard, verdict reveal |
+| **Agent pipeline** | `judge-claim` (done) + `wizard-turn` — pure search+Claude functions |
+| **The rest** (`Eric` branch) | rooms/sessions, persistence, scoring, realtime fan-out, leaderboard, health, seed topics |
+
 ## Status
 
-Backend skeleton (build-order step 1):
-
 - [x] Database schema — `migrations/20260628120000_init.sql`
-- [x] `/judge-claim` edge function — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
-- [x] Multi-dimension scorecard per claim (factual accuracy / logic / evidence / persuasiveness) + fallacy detection, all in the single judge call
-- [x] curl smoke test — `scripts/test-judge.sh`
-- [ ] `/wizard-turn`
-- [ ] Realtime channel + score broadcast
-- [ ] Postgres persistence in the functions
-- [ ] React arena frontend
+- [x] `judge-claim` — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
+- [x] Multi-dimension scorecard + fallacy detection in the single judge call
+- [x] **Orchestration/infra**: `create-room`, `submit-argument`, `advance-wizard`, `get-room`, `leaderboard`, `health`
+- [x] Persistence (claims/citations/scores) + realtime via DB-change subscriptions
+- [x] Demo seed topics with built-in factual traps — `seed/topics.json`
+- [ ] `wizard-turn` (agent-pipeline track)
+- [ ] React arena frontend (frontend track)
 
 ## Repo layout
 
