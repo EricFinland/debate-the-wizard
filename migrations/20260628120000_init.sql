@@ -2,6 +2,9 @@
 -- Applied with: npx @insforge/cli db migrations up --all
 -- Note: no BEGIN/COMMIT here; the CLI wraps each migration in its own transaction.
 
+-- gen_random_uuid() is built in on modern Postgres; this is harmless insurance.
+create extension if not exists "pgcrypto";
+
 create table if not exists public.rooms (
   id            uuid primary key default gen_random_uuid(),
   topic         text not null,

@@ -31,8 +31,8 @@ type Verdict = keyof typeof SCORE;
 
 const env = (k: string, fallback = "") => Deno.env.get(k) ?? fallback;
 
-const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-3.5-sonnet");
-const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-3.5-haiku");
+const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
+const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 const YOUCOM_SEARCH_URL = env("YOUCOM_SEARCH_URL", "https://ydc-index.io/v1/search");
 
@@ -118,11 +118,10 @@ function parseJson<T>(text: string): T | null {
   }
 }
 
-/** Call the InsForge Model Gateway. */
+/** Call the model gateway — OpenRouter, using the InsForge-provisioned key. */
 async function chat(model: string, messages: { role: string; content: string }[], temperature = 0): Promise<string> {
-  const base = env("INSFORGE_API_URL").replace(/\/+$/, "");
-  const key = env("INSFORGE_API_KEY");
-  if (!base || !key) throw new Error("Model gateway not configured (INSFORGE_API_URL / INSFORGE_API_KEY).");
+  const key = env("OPENROUTER_API_KEY");
+  if (!key) throw new Error("OPENROUTER_API_KEY not configured.");
 
   const res = await fetch(`${base}/api/ai/chat/completion`, {
     method: "POST",
@@ -137,7 +136,7 @@ async function chat(model: string, messages: { role: string; content: string }[]
   return data?.text ?? "";
 }
 
-/** Hit You.com Search and normalize to citations. */
+/** Hit You.com Search (GET) and normalize to citations. */
 async function searchYouCom(query: string): Promise<Citation[]> {
   const key = env("YOUCOM_API_KEY");
   if (!key) throw new Error("YOUCOM_API_KEY not set.");

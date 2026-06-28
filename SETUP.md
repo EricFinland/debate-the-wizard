@@ -49,18 +49,38 @@ npx @insforge/cli secrets list
 > functions, you can drop `INSFORGE_API_URL` / `INSFORGE_API_KEY` and read the
 > injected names instead — adjust `env(...)` calls in the function accordingly.
 
-## 4. Deploy the judge function
+## 4. Deploy the functions
+
+The core pipeline (agent-pipeline track):
 
 ```bash
 npx @insforge/cli functions deploy judge-claim \
   --file functions/judge-claim/index.ts \
   --name "Judge a claim" \
   --description "Grounds a debate claim in You.com results and rules supported/unsupported/misleading"
+```
+
+The orchestration / infra functions ("the rest" track):
+
+```bash
+npx @insforge/cli functions deploy create-room     --file functions/create-room/index.ts     --name "Create room"
+npx @insforge/cli functions deploy submit-argument --file functions/submit-argument/index.ts --name "Submit argument"
+npx @insforge/cli functions deploy advance-wizard  --file functions/advance-wizard/index.ts  --name "Advance wizard"
+npx @insforge/cli functions deploy get-room        --file functions/get-room/index.ts        --name "Get room"
+npx @insforge/cli functions deploy leaderboard     --file functions/leaderboard/index.ts     --name "Leaderboard"
+npx @insforge/cli functions deploy health          --file functions/health/index.ts          --name "Health"
 
 npx @insforge/cli functions list
 ```
 
-It will be live at: `https://<PROJECT>.insforge.dev/functions/judge-claim`
+`wizard-turn` is owned by the agent-pipeline branch; deploy it once that's ready
+(`advance-wizard` returns a clear 503 until then).
+
+Each is live at `https://<PROJECT>.insforge.dev/functions/<slug>`. Quick check:
+
+```bash
+curl https://<PROJECT>.insforge.dev/functions/health
+```
 
 ## 5. Test with curl — the step-1 success gate
 
@@ -73,9 +93,15 @@ Expected: a `supported` verdict with real citations on the first claim, and
 
 Debug with: `npx @insforge/cli logs function.logs`
 
-## What's next (later sessions)
+## 6. Realtime (frontend)
 
-- `/wizard-turn` edge fn (reuses this exact search+judge pipeline)
-- Realtime channel per room + score/verdict broadcast
-- Persist claims + citations to Postgres (currently the function is stateless)
-- React arena frontend, then deploy via `npx @insforge/cli deployments`
+UI updates come from subscribing to row-change events on `claims` / `players`
+filtered by `room_id` — no server-side publishing needed. Confirm the exact event
+names with `npx @insforge/cli metadata` and see the client pattern in
+[docs/backend-architecture.md](docs/backend-architecture.md). If table-change
+subscriptions need enabling, do it there.
+
+## What's next
+
+- `wizard-turn` edge fn (agent-pipeline track; reuses the search+judge pipeline)
+- React arena frontend (frontend track), then deploy via `npx @insforge/cli deployments`

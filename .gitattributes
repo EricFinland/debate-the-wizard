@@ -1,0 +1,8 @@
+# Normalize line endings — keep LF in the repo across Windows/Mac/Linux.
+* text=auto eol=lf
+
+# Binary-ish files: leave untouched
+*.png binary
+*.jpg binary
+*.ico binary
+*.lock binary
