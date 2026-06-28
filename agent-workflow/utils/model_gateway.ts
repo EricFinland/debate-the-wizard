@@ -7,11 +7,7 @@ interface CallModelJsonInput {
 }
 
 interface ChatCompletionResponse {
-  choices?: {
-    message?: {
-      content?: string;
-    };
-  }[];
+  text?: string;
 }
 
 export async function callModelJson<T>({
@@ -21,15 +17,13 @@ export async function callModelJson<T>({
 }: CallModelJsonInput): Promise<T> {
   const baseUrl = readEnv("INSFORGE_API_URL").replace(/\/+$/, "");
   const apiKey = readEnv("INSFORGE_API_KEY");
-  const model = readEnv("AGENT_WORKFLOW_MODEL", "anthropic/claude-3.5-sonnet");
+  const model = readEnv("AGENT_WORKFLOW_MODEL", readEnv("JUDGE_MODEL", "gpt-5.4-mini"));
 
   if (!baseUrl || !apiKey) {
     throw new Error("InsForge Model Gateway is not configured. Set INSFORGE_API_URL and INSFORGE_API_KEY.");
   }
 
-  // TODO: Replace this OpenAI-compatible fallback with the exact InsForge SDK/native
-  // gateway call once the backend integration details are finalized.
-  const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+  const response = await fetch(`${baseUrl}/api/ai/chat/completion`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -52,7 +46,7 @@ export async function callModelJson<T>({
   }
 
   const data = await response.json() as ChatCompletionResponse;
-  const content = data.choices?.[0]?.message?.content;
+  const content = data.text;
   if (!content) {
     throw new Error("InsForge Model Gateway returned an empty response.");
   }
@@ -70,4 +64,3 @@ function readEnv(key: string, fallback = ""): string {
 
   return denoEnv.Deno?.env?.get?.(key) ?? nodeProcess.process?.env?.[key] ?? fallback;
 }
-

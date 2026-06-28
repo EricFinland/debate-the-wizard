@@ -118,13 +118,13 @@ function parseJson<T>(text: string): T | null {
   }
 }
 
-/** Call the InsForge Model Gateway (OpenAI-compatible chat completions). */
+/** Call the InsForge Model Gateway. */
 async function chat(model: string, messages: { role: string; content: string }[], temperature = 0): Promise<string> {
   const base = env("INSFORGE_API_URL").replace(/\/+$/, "");
   const key = env("INSFORGE_API_KEY");
   if (!base || !key) throw new Error("Model gateway not configured (INSFORGE_API_URL / INSFORGE_API_KEY).");
 
-  const res = await fetch(`${base}/v1/chat/completions`, {
+  const res = await fetch(`${base}/api/ai/chat/completion`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model, messages, temperature }),
@@ -134,7 +134,7 @@ async function chat(model: string, messages: { role: string; content: string }[]
     throw new Error(`Gateway ${res.status}: ${detail.slice(0, 300)}`);
   }
   const data = await res.json();
-  return data?.choices?.[0]?.message?.content ?? "";
+  return data?.text ?? "";
 }
 
 /** Hit You.com Search and normalize to citations. */
