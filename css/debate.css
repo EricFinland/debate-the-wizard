@@ -479,6 +479,128 @@
 }
 
 /* ----------------------------------------
+   ROUND RESULT (tidy both-sides verdict card inside #dialog-box)
+   color-coded by verdict; overlays the dialog like #action-menu
+   ---------------------------------------- */
+.round-result {
+    position: absolute;
+    inset: 6px;
+    background: #fff;
+    border: 2px solid var(--debate-ink);
+    border-radius: 4px;
+    padding: 6px 7px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    font-family: 'GameFont', fantasy;
+    z-index: 7;
+}
+
+.round-result.hidden {
+    display: none;
+}
+
+.round-result::-webkit-scrollbar {
+    width: 5px;
+}
+
+.round-result::-webkit-scrollbar-thumb {
+    background: var(--debate-ink);
+}
+
+.round-result .rr-title {
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--debate-ink);
+    border-bottom: 2px solid var(--debate-ink);
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+}
+
+.round-result .rr-row {
+    border: 2px solid var(--debate-ink);
+    border-left-width: 4px;
+    padding: 4px 5px 5px;
+    margin-bottom: 5px;
+    background: var(--debate-paper);
+}
+
+.round-result .rr-row:last-child {
+    margin-bottom: 0;
+}
+
+/* left accent stripe by verdict */
+.round-result .rr-supported   { border-left-color: var(--debate-green); }
+.round-result .rr-misleading  { border-left-color: var(--debate-red); }
+.round-result .rr-unsupported { border-left-color: var(--debate-grey); }
+
+.round-result .rr-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 3px;
+}
+
+.round-result .rr-side {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--debate-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* verdict pill */
+.round-result .rr-pill {
+    flex: 0 0 auto;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 4px;
+    border: 1px solid var(--debate-ink);
+    color: #fff;
+    image-rendering: pixelated;
+}
+
+.round-result .rr-pill-supported   { background: var(--debate-green); color: var(--debate-ink); }
+.round-result .rr-pill-misleading  { background: var(--debate-red); color: #fff; }
+.round-result .rr-pill-unsupported { background: var(--debate-grey); color: #fff; }
+
+/* damage tag */
+.round-result .rr-dmg {
+    flex: 0 0 auto;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 3px;
+    border: 1px solid var(--debate-ink);
+}
+
+.round-result .rr-dmg-dealt { background: #eafbe9; color: #1e6b25; }
+.round-result .rr-dmg-taken { background: #fdeae7; color: #8a241a; }
+
+.round-result .rr-claim {
+    font-size: 7px;
+    line-height: 1.45;
+    color: var(--debate-ink);
+    margin-bottom: 3px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.round-result .rr-rationale {
+    font-size: 7px;
+    line-height: 1.5;
+    color: #404040;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------
    VERDICT FLASHES (brief full-scene tint/pulse)
    apply to #scene
    ---------------------------------------- */

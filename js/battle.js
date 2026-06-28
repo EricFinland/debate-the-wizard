@@ -19,6 +19,12 @@ const Battle = (() => {
     const START_HP = 100;
     const PLAYER_LEVEL = 5;
 
+    /* pool of wizard names; one is picked at random per battle */
+    const ENEMY_NAMES = [
+        'IGRIS', 'MALGOR', 'ZYREN', 'VEXIS', 'NOCTUA',
+        'GRIMWALD', 'SABLE', 'PYRRHA', 'KORVUS', 'THESSA'
+    ];
+
     /* spell tint per verdict (reuse projectile FX) */
     const CAST_COLOR = '#b06bff';      // supported -> arcane bolt
     const FIZZLE_COLOR = '#9a9a9a';    // unsupported -> weak grey
@@ -62,6 +68,9 @@ const Battle = (() => {
     let lastPlayerArg = '';      // fed to advance-wizard as opponent_argument
     let argResolver = null;      // resolver while waiting on the text input
 
+    // latest round result, rendered into #round-result for both sides
+    let roundResult = { player: null, wizard: null };
+
     let actionNav = null;
 
     // DOM refs (resolved on init)
@@ -96,7 +105,10 @@ const Battle = (() => {
             pickForMe: document.getElementById('pick-for-me'),
             sidePicker: document.getElementById('side-picker'),
             sideFor: document.getElementById('side-for'),
-            sideAgainst: document.getElementById('side-against')
+            sideAgainst: document.getElementById('side-against'),
+            // persistent stance reminder + tidy round result
+            stanceBanner: document.getElementById('stance-banner'),
+            roundResult: document.getElementById('round-result')
         };
         actionNav = KeyboardNav.create({ columns: 2 });
 
@@ -253,6 +265,7 @@ const Battle = (() => {
         return new Promise(resolve => {
             els.actionMenu.classList.add('hidden');
             hideLegacyCitationBox();
+            hideRoundResult();
             els.arrow.classList.add('hidden');
             els.argInput.value = '';
             els.argInput.placeholder = placeholder || 'TYPE HERE...';
@@ -334,6 +347,106 @@ const Battle = (() => {
         if (els.citationBox) els.citationBox.classList.add('hidden');
     }
 
+    /* ---------- stance banner (persistent "YOU ARGUE FOR: <topic>") ---------- */
+    function showStanceBanner(topic) {
+        if (!els.stanceBanner) return;
+        els.stanceBanner.innerHTML = '';
+        const lbl = document.createElement('span');
+        lbl.className = 'stance-label';
+        lbl.textContent = 'YOU ARGUE FOR:';
+        const txt = document.createElement('span');
+        txt.className = 'stance-topic';
+        txt.textContent = topic || '';
+        txt.title = topic || '';
+        els.stanceBanner.appendChild(lbl);
+        els.stanceBanner.appendChild(txt);
+        els.stanceBanner.classList.remove('hidden');
+    }
+
+    function hideStanceBanner() {
+        if (els.stanceBanner) els.stanceBanner.classList.add('hidden');
+    }
+
+    /* ---------- clean round-result UI (both sides, color-coded) ----------
+       roundResult.player / .wizard each: { verdict, rationale, claimText, dmgDealt, dmgTaken } */
+    const VERDICT_LABEL = {
+        supported: 'SUPPORTED',
+        misleading: 'MISLEADING',
+        unsupported: 'UNSUPPORTED'
+    };
+
+    function shortClaim(claim) {
+        const t = (claim && (claim.key_claim || claim.claim || claim.argument)) || '';
+        const s = String(t).trim();
+        if (s.length <= 140) return s;
+        return s.slice(0, 137).replace(/\s+\S*$/, '') + '...';
+    }
+
+    function buildResultRow(who, data) {
+        const verdict = (data && data.verdict) || 'unsupported';
+        const row = document.createElement('div');
+        row.className = 'rr-row rr-' + verdict;
+
+        const head = document.createElement('div');
+        head.className = 'rr-head';
+
+        const side = document.createElement('span');
+        side.className = 'rr-side';
+        side.textContent = who;
+        head.appendChild(side);
+
+        const pill = document.createElement('span');
+        pill.className = 'rr-pill rr-pill-' + verdict;
+        pill.textContent = VERDICT_LABEL[verdict] || verdict.toUpperCase();
+        head.appendChild(pill);
+
+        if (typeof data.dmg === 'number' && data.dmg > 0) {
+            const dmg = document.createElement('span');
+            dmg.className = 'rr-dmg rr-dmg-' + (data.dmgTo === 'self' ? 'taken' : 'dealt');
+            const verb = data.dmgTo === 'self' ? '-' : '';
+            dmg.textContent = (data.dmgTo === 'self' ? 'TOOK ' : 'DEALT ') + verb + data.dmg;
+            head.appendChild(dmg);
+        }
+        row.appendChild(head);
+
+        if (data.claimText) {
+            const ct = document.createElement('div');
+            ct.className = 'rr-claim';
+            ct.textContent = '"' + data.claimText + '"';
+            row.appendChild(ct);
+        }
+        if (data.rationale) {
+            const ra = document.createElement('div');
+            ra.className = 'rr-rationale';
+            ra.textContent = data.rationale;
+            row.appendChild(ra);
+        }
+        return row;
+    }
+
+    function renderRoundResult() {
+        const box = els.roundResult;
+        if (!box) return;
+        box.innerHTML = '';
+
+        const title = document.createElement('div');
+        title.className = 'rr-title';
+        title.textContent = 'ROUND ' + round + ' RESULT';
+        box.appendChild(title);
+
+        if (roundResult.player) {
+            box.appendChild(buildResultRow('YOU', roundResult.player));
+        }
+        if (roundResult.wizard) {
+            box.appendChild(buildResultRow(enemy.name, roundResult.wizard));
+        }
+        box.classList.remove('hidden');
+    }
+
+    function hideRoundResult() {
+        if (els.roundResult) els.roundResult.classList.add('hidden');
+    }
+
     /* ---------- battle setup ---------- */
     function start(difficulty) {
         const save = Storage.load() || {};
@@ -349,7 +462,7 @@ const Battle = (() => {
             maxHp: START_HP
         };
         enemy = {
-            name: 'IGRIS',
+            name: ENEMY_NAMES[rand(0, ENEMY_NAMES.length - 1)],
             color: enemyColor,
             level: cfg.level,
             hp: START_HP,
@@ -384,6 +497,8 @@ const Battle = (() => {
         hideLegacyCitationBox();
         hideSidePicker();
         clearSideCitations();
+        hideStanceBanner();
+        hideRoundResult();
         els.arrow.classList.add('hidden');
         awaitingContinue = null;
         argResolver = null;
@@ -423,6 +538,9 @@ const Battle = (() => {
             await waitForClick();
             return beginDebate();
         }
+
+        // persistent reminder of what the player is defending this whole duel
+        showStanceBanner(topic);
 
         say('You argue FOR. ' + enemy.name + ' argues AGAINST. ' + roundsTotal + ' rounds. Choose FIGHT to cast an argument!');
         await waitForClick();
@@ -470,6 +588,7 @@ const Battle = (() => {
     function showActionMenu() {
         els.moveMenu.classList.add('hidden');
         els.inputWrap.classList.add('hidden');
+        hideRoundResult();
         els.actionMenu.classList.remove('hidden');
         say('ROUND ' + round + ' of ' + roundsTotal + ' — what will ' + player.name + ' do?');
         actionNav.setItems(els.actionMenu.querySelectorAll('.menu-item'), 2);
@@ -509,6 +628,9 @@ const Battle = (() => {
         busy = true;
         els.actionMenu.classList.add('hidden');
         hideLegacyCitationBox();
+        // fresh result for this round
+        roundResult = { player: null, wizard: null };
+        hideRoundResult();
 
         // ----- PLAYER TURN -----
         say('Cast your argument FOR the claim...');
@@ -567,8 +689,10 @@ const Battle = (() => {
         const rationale = (claim && claim.rationale) || '';
         flashScene(verdict);
 
+        let dmg = 0;
+        let dmgTo = 'enemy';
         if (verdict === 'supported') {
-            const dmg = rand(22, 30);
+            dmg = rand(22, 30);
             els.playerWizard.classList.add('lunge');
             const animP = Wizard.playState(els.playerWizard, 'attack', 700);
             await delay(200);
@@ -582,7 +706,8 @@ const Battle = (() => {
             say('SUPPORTED! Your spell strikes for ' + dmg + '! ' + rationale);
         } else if (verdict === 'misleading') {
             // BACKFIRE on the player
-            const dmg = rand(18, 26);
+            dmg = rand(18, 26);
+            dmgTo = 'self';
             await projectile(els.playerWizard, els.playerWizard, FIZZLE_COLOR);
             player.hp = Math.max(0, player.hp - dmg);
             updateHp('player');
@@ -593,7 +718,7 @@ const Battle = (() => {
             say('MISLEADING! Your claim was misleading and backfires for ' + dmg + '! ' + rationale);
         } else {
             // unsupported -> fizzle, tiny/no damage
-            const dmg = rand(0, 8);
+            dmg = rand(0, 8);
             const animP = Wizard.playState(els.playerWizard, 'attack', 500);
             await projectile(els.playerWizard, els.enemyWizard, FIZZLE_COLOR);
             if (dmg > 0) {
@@ -603,6 +728,15 @@ const Battle = (() => {
             await animP;
             say('UNSUPPORTED — your claim fizzled (' + dmg + '). ' + rationale);
         }
+
+        roundResult.player = {
+            verdict: verdict,
+            rationale: rationale,
+            claimText: shortClaim({ key_claim: claim && claim.key_claim, argument: lastPlayerArg }),
+            dmg: dmg,
+            dmgTo: dmgTo
+        };
+        renderRoundResult();
         await waitForClick();
     }
 
@@ -618,8 +752,10 @@ const Battle = (() => {
             await waitForClick();
         }
 
+        let dmg = 0;
+        let dmgTo = 'player';
         if (verdict === 'supported') {
-            let dmg = Math.round(rand(22, 30) * enemy.dmgMult);
+            dmg = Math.round(rand(22, 30) * enemy.dmgMult);
             els.enemyWizard.classList.add('lunge');
             const animP = Wizard.playState(els.enemyWizard, 'attack', 700);
             await delay(200);
@@ -633,7 +769,8 @@ const Battle = (() => {
             say('SUPPORTED! ' + enemy.name + ' lands ' + dmg + ' on you! ' + rationale);
         } else if (verdict === 'misleading') {
             // THE WIZARD WAS CAUGHT — backfire on the enemy (money shot)
-            const dmg = rand(18, 26);
+            dmg = rand(18, 26);
+            dmgTo = 'self';
             await projectile(els.enemyWizard, els.enemyWizard, FIZZLE_COLOR);
             enemy.hp = Math.max(0, enemy.hp - dmg);
             updateHp('enemy');
@@ -643,7 +780,7 @@ const Battle = (() => {
             ]);
             say('THE WIZARD WAS CAUGHT! Misleading claim backfires for ' + dmg + '! ' + rationale);
         } else {
-            const dmg = Math.round(rand(0, 8) * enemy.dmgMult);
+            dmg = Math.round(rand(0, 8) * enemy.dmgMult);
             const animP = Wizard.playState(els.enemyWizard, 'attack', 500);
             await projectile(els.enemyWizard, els.playerWizard, FIZZLE_COLOR);
             if (dmg > 0) {
@@ -653,6 +790,16 @@ const Battle = (() => {
             await animP;
             say(enemy.name + "'s claim was UNSUPPORTED — it fizzles (" + dmg + '). ' + rationale);
         }
+
+        roundResult.wizard = {
+            verdict: verdict,
+            rationale: rationale,
+            claimText: shortClaim(claim),
+            dmg: dmg,
+            // wizard "self" damage was taken by the enemy; otherwise dealt to player
+            dmgTo: dmgTo === 'self' ? 'self' : 'enemy'
+        };
+        renderRoundResult();
         await waitForClick();
     }
 
@@ -662,6 +809,7 @@ const Battle = (() => {
         els.actionMenu.classList.add('hidden');
         els.inputWrap.classList.add('hidden');
         hideLegacyCitationBox();
+        hideRoundResult();
 
         let playerWon;
         if (player.hp <= 0 && enemy.hp <= 0) playerWon = player.hp >= enemy.hp;

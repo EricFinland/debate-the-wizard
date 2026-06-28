@@ -143,16 +143,41 @@
 
         /**
          * Record a finished match for the leaderboard.
+         *
+         * Uses the logged-in identity when available:
+         *   - user_id        = Auth user id, else the guest clientId.
+         *   - display_name   = opts.name (account name or Storage name).
+         *   - email_verified = the user's REAL emailVerified (true only for
+         *                      OAuth/verified accounts). Guests and unverified
+         *                      email accounts are false, so only OAuth users rank.
+         *
+         * Always works for guests (window.Auth may be absent or return null).
+         *
          * @param {{name:string, won:(boolean|null), score:number}} opts
          */
         recordMatch: function (opts) {
             opts = opts || {};
-            return post('record-match', {
-                user_id: getClientId(),
-                display_name: opts.name,
-                won: opts.won,
-                score: opts.score,
-                email_verified: true
+
+            // Best-effort: resolve the logged-in user if Auth is present.
+            var userPromise;
+            if (window.Auth && typeof window.Auth.getUser === 'function') {
+                userPromise = window.Auth.getUser().catch(function () { return null; });
+            } else {
+                userPromise = Promise.resolve(null);
+            }
+
+            return userPromise.then(function (user) {
+                var userId = (user && user.id) ? user.id : getClientId();
+                var displayName = opts.name || (user && user.name) || 'PLAYER';
+                var emailVerified = !!(user && user.emailVerified);
+
+                return post('record-match', {
+                    user_id: userId,
+                    display_name: displayName,
+                    won: opts.won,
+                    score: opts.score,
+                    email_verified: emailVerified
+                });
             });
         }
     };

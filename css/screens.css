@@ -233,3 +233,115 @@
     object-fit: contain;
     image-rendering: pixelated;
 }
+
+/* ---------- ACCOUNT ---------- */
+#account-screen {
+    background: var(--gs-blue);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 14px;
+}
+
+.acct-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: var(--gold);
+}
+
+.acct-sub {
+    font-size: 7px;
+    color: #cdd5ea;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+#account-screen input {
+    background: #fff;
+    color: #000;
+    border: 2px solid #888;
+    padding: 6px;
+    font-family: 'GameFont', fantasy;
+    font-size: 9px;
+    text-transform: uppercase;
+    width: 160px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 8px;
+    display: block;
+}
+
+#account-screen input::placeholder {
+    color: #999;
+}
+
+.acct-btns {
+    display: flex;
+    gap: 14px;
+    margin-top: 2px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.acct-divider {
+    font-size: 6px;
+    color: #9aa6c8;
+    margin: 4px 0 8px;
+    text-align: center;
+}
+
+.acct-oauth {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.acct-oauth-btn {
+    font-size: 7px;
+}
+
+.acct-note {
+    font-size: 6px;
+    color: #cdd5ea;
+    margin-top: 8px;
+    text-align: center;
+}
+
+.acct-error {
+    font-size: 6px;
+    color: #ff8a7a;
+    margin-top: 10px;
+    text-align: center;
+    max-width: 170px;
+}
+
+.acct-email-display {
+    font-size: 8px;
+    color: var(--gold);
+    margin-bottom: 6px;
+    text-align: center;
+    word-break: break-all;
+    max-width: 170px;
+}
+
+.acct-rank-note {
+    font-size: 6px;
+    color: #cdd5ea;
+    margin-bottom: 10px;
+    text-align: center;
+    max-width: 170px;
+}
+
+.acct-foot {
+    font-size: 7px;
+    color: #9aa6c8;
+    margin-top: 14px;
+    cursor: pointer;
+}
+
+.acct-foot:hover,
+.acct-foot.is-key-selected {
+    color: #fff;
+}

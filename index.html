@@ -10,6 +10,24 @@
     <link rel="stylesheet" href="css/screens.css">
     <link rel="stylesheet" href="css/battle.css">
     <link rel="stylesheet" href="css/debate.css">
+
+    <!-- InsForge browser client (publishable anon key, safe in the browser).
+         Wrapped so a CDN/network failure can NEVER throw an uncaught error or
+         block the game: guests keep playing, Auth just stays signed-out. -->
+    <script type="module">
+        try {
+            const { createClient } = await import('https://esm.sh/@insforge/sdk@1.4.3');
+            window.__insforge = createClient({
+                baseUrl: 'https://atjgzcv9.us-east.insforge.app',
+                anonKey: 'anon_bc75b3318f511cc45a2b0c86dd7cd801cd1f46becdd93dd2fd6da1845748fa6e'
+            });
+            window.dispatchEvent(new Event('insforge-ready'));
+        } catch (e) {
+            // SDK unavailable (offline / CDN blocked). Auth.ready() times out and
+            // getUser() returns null; the game runs in guest-only mode.
+            console.warn('InsForge SDK unavailable; running in guest mode.', e);
+        }
+    </script>
 </head>
 
 <body>
@@ -26,6 +44,7 @@
                     <div class="mm-opt" id="mm-continue" data-action="continue">CONTINUE</div>
                     <div class="mm-opt" id="mm-newgame" data-action="newgame">NEW GAME</div>
                     <div class="mm-opt" id="mm-leaderboard" data-action="leaderboard">LEADERBOARD</div>
+                    <div class="mm-opt" id="mm-account" data-action="account">ACCOUNT</div>
                 </div>
             </section>
 
@@ -89,6 +108,9 @@
 
             <!-- ============ BATTLE ============ -->
             <section id="battle-screen" class="screen hidden">
+                <!-- persistent stance reminder: what the player is defending -->
+                <div id="stance-banner" class="stance-banner hidden"></div>
+
                 <div class="scene" id="scene">
                     <div id="fx-container"></div>
 
@@ -153,6 +175,9 @@
                     </div>
 
                     <div id="move-menu" class="hidden"></div>
+
+                    <!-- tidy per-round result for BOTH sides (verdict + rationale + dmg) -->
+                    <div id="round-result" class="round-result hidden"></div>
                 </div>
             </section>
 
@@ -161,6 +186,46 @@
                 <div class="lb-title">CHAMPIONS</div>
                 <div id="lb-list" class="lb-list"></div>
                 <div class="pixel-btn lb-back" id="lb-quit">&#9664; QUIT TO TITLE</div>
+            </section>
+
+            <!-- ============ ACCOUNT ============ -->
+            <section id="account-screen" class="screen acct-screen hidden">
+                <div class="acct-title">ACCOUNT</div>
+
+                <!-- LOGGED-OUT state: email/password + OAuth -->
+                <div id="acct-loggedout">
+                    <div class="acct-sub">SAVE YOUR PROGRESS</div>
+
+                    <input type="email" id="acct-email" placeholder="EMAIL" autocomplete="off"
+                        autocapitalize="off" spellcheck="false">
+                    <input type="password" id="acct-password" placeholder="PASSWORD" autocomplete="off">
+
+                    <div class="acct-btns">
+                        <div class="pixel-btn" id="acct-login">LOG IN</div>
+                        <div class="pixel-btn" id="acct-signup">SIGN UP</div>
+                    </div>
+
+                    <div class="acct-divider">OAUTH = LEADERBOARD</div>
+                    <div class="acct-oauth">
+                        <div class="pixel-btn acct-oauth-btn" id="acct-google">SIGN IN WITH GOOGLE</div>
+                        <div class="pixel-btn acct-oauth-btn" id="acct-github">SIGN IN WITH GITHUB</div>
+                    </div>
+                    <div class="acct-note">OAUTH NEEDED TO JOIN THE LEADERBOARD</div>
+
+                    <div class="acct-error hidden" id="acct-error"></div>
+                </div>
+
+                <!-- LOGGED-IN state: email + sign out -->
+                <div id="acct-loggedin" class="hidden">
+                    <div class="acct-sub">SIGNED IN AS</div>
+                    <div class="acct-email-display" id="acct-email-display">--</div>
+                    <div class="acct-rank-note" id="acct-rank-note"></div>
+                    <div class="acct-btns">
+                        <div class="pixel-btn" id="acct-signout">SIGN OUT</div>
+                    </div>
+                </div>
+
+                <div class="acct-foot" id="acct-guest">&#9664; PLAY AS GUEST</div>
             </section>
 
         </div>
@@ -180,6 +245,7 @@
     <script src="js/screen-manager.js"></script>
     <script src="js/registration.js"></script>
     <script src="js/menu.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/api.js"></script>
     <script src="js/leaderboard.js"></script>
     <script src="js/battle.js"></script>
