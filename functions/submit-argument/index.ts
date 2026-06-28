@@ -7,7 +7,7 @@
 // URL trips Deno Deploy's 508 loop detection.
 //
 // POST { "room_id": uuid, "round_no": number, "argument": string }
-// Returns { claim, citations, score, citation_index }.
+// Returns { claim, citations, score, citation_index, search_query }.
 //
 // Deploy: npx @insforge/cli functions deploy submit-argument --file functions/submit-argument/index.ts --name "submit-argument"
 
@@ -28,7 +28,9 @@ const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 const MAX_ARG = 4000;
 
-const BASE = env("INSFORGE_API_URL").replace(/\/+$/, "");
+// Fall back to the known project URL if INSFORGE_API_URL is not in the deployment env.
+const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
+const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
 const DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
 const KEY = env("INSFORGE_API_KEY");
 const DB = `${DATA}/api/database/records`;
@@ -103,9 +105,9 @@ async function judgePipeline(argument: string, topic: string) {
   const query = await extractSearchQuery(argument, topic);
   let citations: Citation[] = [];
   try { citations = await searchYouCom(query); } catch { citations = []; }
-  if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null };
+  if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null, search_query: query };
   const r = await judgeVerdict(argument, citations);
-  return { key_claim: r.key_claim, verdict: r.verdict, rationale: r.rationale, points: SCORE[r.verdict], scores: r.scores, fallacies: r.fallacies, citations, citation_index: r.citation_index };
+  return { key_claim: r.key_claim, verdict: r.verdict, rationale: r.rationale, points: SCORE[r.verdict], scores: r.scores, fallacies: r.fallacies, citations, citation_index: r.citation_index, search_query: query };
 }
 
 // ---------- db helpers ----------
@@ -165,6 +167,7 @@ export default async function (req: Request): Promise<Response> {
       room_id, round_no, author: "player", argument,
       key_claim: ruling.key_claim ?? null, verdict: ruling.verdict ?? null, rationale: ruling.rationale ?? null,
       points: ruling.points ?? 0, scores: ruling.scores ?? null, fallacies: ruling.fallacies ?? [],
+      search_query: ruling.search_query ?? null,
     }]);
 
     const cites = ruling.citations ?? [];
@@ -173,7 +176,7 @@ export default async function (req: Request): Promise<Response> {
       : [];
 
     const score = await recomputeScore(room_id, "A", "player");
-    return json({ claim, citations: inserted, score, citation_index: ruling.citation_index ?? null });
+    return json({ claim, citations: inserted, score, citation_index: ruling.citation_index ?? null, search_query: ruling.search_query ?? null });
   } catch (err) {
     return json({ error: String(err instanceof Error ? err.message : err) }, 500);
   }

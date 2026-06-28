@@ -17,6 +17,7 @@ export type Verdict = "supported" | "unsupported" | "misleading";
 export type Side = "A" | "B"; // A = human, B = wizard
 export type Author = "player" | "wizard";
 export type RoomStatus = "lobby" | "active" | "finished";
+export type Difficulty = "novice" | "adept" | "archmage";
 
 export interface Scores {
   factual_accuracy: number; // 0-10
@@ -62,6 +63,10 @@ export interface Claim {
   fallacies: string[];
   created_at: string;
   citations?: Citation[];
+  /** Wizard-only jab returned by advance-wizard. */
+  taunt?: string | null;
+  /** The web-search query the judge/wizard ran for this turn. */
+  search_query?: string | null;
 }
 
 /** Raw output of the pure judge-claim function. */
@@ -90,6 +95,10 @@ export interface TurnResponse {
   score: number;
   citation_index: number | null;
   room?: Room; // advance-wizard includes the (possibly finished) room
+  /** The web-search query this turn ran (mirrors claim.search_query). */
+  search_query?: string | null;
+  /** Wizard-only jab (advance-wizard only; mirrors claim.taunt). */
+  taunt?: string | null;
 }
 
 export interface GetRoomResponse {
@@ -101,14 +110,39 @@ export interface GetRoomResponse {
 }
 
 export interface LeaderboardEntry {
-  room_id: string;
-  score: number;
-  topic: string | null;
-  status: RoomStatus | null;
-  created_at: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  wins: number;
+  losses: number;
+  total_score: number;
 }
 export interface LeaderboardResponse {
   leaderboard: LeaderboardEntry[];
+}
+
+/** Lightweight room summary returned by list-rooms. */
+export interface RoomSummary {
+  id: string;
+  topic: string;
+  status: RoomStatus;
+  rounds_total: number;
+  created_at: string;
+}
+export interface ListRoomsResponse {
+  rooms: RoomSummary[];
+}
+
+/** Persistent player profile aggregated across matches. */
+export interface Profile {
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  wins: number;
+  losses: number;
+  total_score: number;
+}
+export interface RecordMatchResponse {
+  profile: Profile;
 }
 
 export interface HealthResponse {
@@ -189,6 +223,8 @@ export function createDebateClient(
       topic?: string;
       topic_id?: string;
       rounds_total?: number;
+      difficulty?: Difficulty;
+      host_user_id?: string;
     }) => call<CreateRoomResponse>("create-room", "POST", input),
 
     submitArgument: (input: {
@@ -207,6 +243,21 @@ export function createDebateClient(
       call<GetRoomResponse>("get-room", "POST", input),
 
     leaderboard: () => call<LeaderboardResponse>("leaderboard", "GET"),
+
+    /** List recent/open rooms for a lobby browser. */
+    listRooms: () => call<ListRoomsResponse>("list-rooms", "GET"),
+
+    /**
+     * Record a finished match for a logged-in player, updating their
+     * persistent win/loss/score profile.
+     */
+    recordMatch: (input: {
+      user_id: string;
+      display_name?: string | null;
+      avatar_url?: string | null;
+      won: boolean | null;
+      score: number;
+    }) => call<RecordMatchResponse>("record-match", "POST", input),
 
     /** Direct access to the pure judge pipeline (rarely needed from the UI). */
     judgeClaim: (input: { argument: string; topic?: string }) =>

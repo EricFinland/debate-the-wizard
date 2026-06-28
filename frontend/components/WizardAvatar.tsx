@@ -1,18 +1,22 @@
 'use client'
 
-import { motion, type Variants, type Transition } from 'framer-motion'
-
 /**
  * WizardAvatar — the arcane opponent of the duel.
  *
  * Purely presentational. Renders a self-contained SVG wizard (pointed hat,
  * staff, glowing orb, hidden face with two ember eyes) and reacts to the
- * `state` prop with framer-motion choreography:
+ * `state` prop:
  *
  *  - idle     : gentle vertical float, slow breathing orb
  *  - thinking : the orb pulses brightly, runes orbit, the wizard tilts in thought
  *  - speaking : the staff flares, the mouth-glow flickers as if casting words
  *  - caught   : a red recoil shake — the wizard has been fact-checked and lost
+ *
+ * MOTION: all of it is pure CSS keyframes (scoped <style> below), per the
+ * project ANIMATION RULE — looping/idle/decorative motion must NEVER use
+ * framer-motion on this setup (WAAPI crash). The `state` prop selects a root
+ * class (`wa--idle|thinking|speaking|caught`) and every child animates via CSS.
+ * `caught` is a one-shot keyframe (forwards) so it settles after the recoil.
  */
 
 export type WizardState = 'idle' | 'thinking' | 'speaking' | 'caught'
@@ -36,6 +40,8 @@ interface StateTheme {
   robe: string
   /** Robe shadow */
   robeShade: string
+  /** Ember eye fill */
+  eye: string
 }
 
 const THEMES: Record<WizardState, StateTheme> = {
@@ -44,137 +50,29 @@ const THEMES: Record<WizardState, StateTheme> = {
     glow: 'rgba(167,139,250,0.55)',
     robe: '#3b2a6b',
     robeShade: '#241646',
+    eye: '#fef08a',
   },
   thinking: {
     orb: '#c4b5fd',
     glow: 'rgba(196,181,253,0.8)',
     robe: '#43308a',
     robeShade: '#281a55',
+    eye: '#fef08a',
   },
   speaking: {
     orb: '#fcd34d',
     glow: 'rgba(252,211,77,0.75)',
     robe: '#4a3590',
     robeShade: '#2b1c5e',
+    eye: '#fef08a',
   },
   caught: {
     orb: '#fb7185',
     glow: 'rgba(251,113,133,0.85)',
     robe: '#5b2440',
     robeShade: '#3a142a',
+    eye: '#fca5a5',
   },
-}
-
-/* ------------------------------------------------------------------ *
- * Motion variants for the whole avatar group
- * ------------------------------------------------------------------ */
-
-const bodyVariants: Variants = {
-  idle: {
-    y: [0, -6, 0],
-    rotate: 0,
-    x: 0,
-    transition: {
-      y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-    },
-  },
-  thinking: {
-    y: [0, -3, 0],
-    rotate: [-2, 2, -2],
-    x: 0,
-    transition: {
-      y: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
-      rotate: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
-    },
-  },
-  speaking: {
-    y: [0, -4, 0],
-    rotate: 0,
-    x: 0,
-    transition: {
-      y: { duration: 1.6, repeat: Infinity, ease: 'easeInOut' },
-    },
-  },
-  caught: {
-    x: [0, -10, 9, -7, 5, -3, 0],
-    rotate: [0, -5, 4, -3, 2, 0],
-    y: [0, 4, 2, 3, 1, 0],
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
-}
-
-const orbVariants: Variants = {
-  idle: {
-    scale: [1, 1.06, 1],
-    transition: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-  },
-  thinking: {
-    scale: [1, 1.28, 0.95, 1.28, 1],
-    transition: { duration: 1.4, repeat: Infinity, ease: 'easeInOut' },
-  },
-  speaking: {
-    scale: [1, 1.12, 1],
-    transition: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' },
-  },
-  caught: {
-    scale: [1, 0.7, 1.1, 0.9, 1],
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
-}
-
-const glowVariants: Variants = {
-  idle: {
-    opacity: [0.45, 0.7, 0.45],
-    scale: [1, 1.08, 1],
-    transition: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-  },
-  thinking: {
-    opacity: [0.6, 1, 0.6],
-    scale: [1, 1.35, 1],
-    transition: { duration: 1.4, repeat: Infinity, ease: 'easeInOut' },
-  },
-  speaking: {
-    opacity: [0.7, 1, 0.7],
-    scale: [1, 1.2, 1],
-    transition: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' },
-  },
-  caught: {
-    opacity: [1, 0.4, 0.9, 0.5, 0.8],
-    scale: [1.3, 1, 1.2, 1, 1.15],
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
-}
-
-/** Staff head glow — flares when speaking. */
-const staffGlowVariants: Variants = {
-  idle: { opacity: 0.35, scale: 1 },
-  thinking: { opacity: 0.5, scale: 1.05 },
-  speaking: {
-    opacity: [0.5, 1, 0.5],
-    scale: [1, 1.4, 1],
-    transition: { duration: 0.7, repeat: Infinity, ease: 'easeInOut' },
-  },
-  caught: { opacity: 0.25, scale: 0.9 },
-}
-
-/** Ember eyes — narrow + flicker on caught. */
-const eyeVariants: Variants = {
-  idle: { scaleY: 1, opacity: 0.9 },
-  thinking: {
-    opacity: [0.7, 1, 0.7],
-    transition: { duration: 1.4, repeat: Infinity, ease: 'easeInOut' },
-  },
-  speaking: { scaleY: 1, opacity: 1 },
-  caught: {
-    scaleY: [1, 0.2, 1, 0.4, 1],
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
-}
-
-const runeTransition: Transition = {
-  duration: 9,
-  repeat: Infinity,
-  ease: 'linear',
 }
 
 export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
@@ -182,21 +80,20 @@ export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
   const showRunes = state === 'thinking'
 
   return (
-    <motion.div
+    <div
       role="img"
       aria-label={`Wizard, ${state}`}
       style={{ width: size, height: size }}
-      className="relative select-none"
-      initial={false}
+      className={`wa-root wa--${state} relative select-none`}
     >
-      <motion.svg
+      <style>{WA_STYLES}</style>
+
+      <svg
         viewBox="0 0 200 220"
         width={size}
         height={size}
         xmlns="http://www.w3.org/2000/svg"
-        className="overflow-visible"
-        variants={bodyVariants}
-        animate={state}
+        className="wa-body overflow-visible"
       >
         <defs>
           {/* Robe gradient */}
@@ -235,34 +132,20 @@ export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
         </defs>
 
         {/* ---- Ground / floating shadow ---- */}
-        <motion.ellipse
+        <ellipse
+          className="wa-shadow"
           cx="100"
           cy="208"
           rx="46"
           ry="8"
           fill="rgba(0,0,0,0.35)"
-          variants={{
-            idle: { opacity: [0.35, 0.22, 0.35], scaleX: [1, 0.92, 1] },
-            thinking: { opacity: 0.3, scaleX: 1 },
-            speaking: { opacity: [0.35, 0.25, 0.35], scaleX: [1, 0.95, 1] },
-            caught: { opacity: 0.25, scaleX: 1.05 },
-          }}
-          animate={state}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           style={{ transformOrigin: '100px 208px' }}
         />
 
         {/* ====================== STAFF ====================== */}
         <g>
           {/* staff pole */}
-          <rect
-            x="150"
-            y="70"
-            width="6"
-            height="120"
-            rx="3"
-            fill="#7c5a2e"
-          />
+          <rect x="150" y="70" width="6" height="120" rx="3" fill="#7c5a2e" />
           <rect
             x="150"
             y="70"
@@ -282,34 +165,22 @@ export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
             strokeWidth="3"
           />
           {/* staff orb glow */}
-          <motion.circle
+          <circle
+            className="wa-staff-glow"
             cx="153"
             cy="62"
             r="20"
             fill={theme.glow}
             filter="url(#wa-blur)"
-            variants={staffGlowVariants}
-            animate={state}
             style={{ transformOrigin: '153px 62px' }}
           />
           {/* staff orb */}
-          <motion.circle
+          <circle
+            className="wa-staff-orb"
             cx="153"
             cy="62"
             r="9"
             fill="url(#wa-staff-orb)"
-            variants={{
-              idle: { scale: [1, 1.05, 1] },
-              thinking: { scale: [1, 1.1, 1] },
-              speaking: { scale: [1, 1.25, 1] },
-              caught: { scale: [1, 0.85, 1] },
-            }}
-            animate={state}
-            transition={{
-              duration: state === 'speaking' ? 0.7 : 3,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
             style={{ transformOrigin: '153px 62px' }}
           />
         </g>
@@ -362,47 +233,32 @@ export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
           {/* face shadow */}
           <ellipse cx="100" cy="84" rx="20" ry="18" fill="#1a1030" />
           {/* ember eyes */}
-          <motion.circle
+          <circle
+            className="wa-eye"
             cx="92"
             cy="84"
             r="3.4"
-            fill={state === 'caught' ? '#fca5a5' : '#fef08a'}
-            variants={eyeVariants}
-            animate={state}
+            fill={theme.eye}
             style={{ transformOrigin: '92px 84px' }}
           />
-          <motion.circle
+          <circle
+            className="wa-eye"
             cx="108"
             cy="84"
             r="3.4"
-            fill={state === 'caught' ? '#fca5a5' : '#fef08a'}
-            variants={eyeVariants}
-            animate={state}
+            fill={theme.eye}
             style={{ transformOrigin: '108px 84px' }}
           />
           {/* speaking mouth-glow */}
-          <motion.ellipse
+          <ellipse
+            className="wa-mouth"
             cx="100"
             cy="95"
             rx="6"
             ry="3"
             fill={theme.orb}
             filter="url(#wa-blur-sm)"
-            variants={{
-              idle: { opacity: 0 },
-              thinking: { opacity: 0 },
-              speaking: {
-                opacity: [0.2, 0.9, 0.2],
-                ry: [2, 4, 2],
-                transition: {
-                  duration: 0.55,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                },
-              },
-              caught: { opacity: 0 },
-            }}
-            animate={state}
+            style={{ transformOrigin: '100px 95px' }}
           />
           {/* beard */}
           <path
@@ -445,26 +301,18 @@ export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
             opacity="0.6"
           />
           {/* hat star accent */}
-          <motion.path
+          <path
+            className="wa-star"
             d="M100 34 l2.6 6 6.4 .6 -4.8 4.4 1.4 6.4 -5.6 -3.4 -5.6 3.4 1.4 -6.4 -4.8 -4.4 6.4 -.6 Z"
             fill={theme.orb}
-            variants={{
-              idle: { opacity: [0.6, 1, 0.6], scale: [1, 1.08, 1] },
-              thinking: { opacity: [0.7, 1, 0.7], scale: [1, 1.12, 1] },
-              speaking: { opacity: [0.7, 1, 0.7], scale: [1, 1.1, 1] },
-              caught: { opacity: 0.4, scale: 0.9 },
-            }}
-            animate={state}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             style={{ transformOrigin: '100px 41px' }}
           />
         </g>
 
         {/* ====================== ORBITING RUNES (thinking only) ====================== */}
         {showRunes && (
-          <motion.g
-            animate={{ rotate: 360 }}
-            transition={runeTransition}
+          <g
+            className="wa-runes"
             style={{ transformOrigin: '100px 110px' }}
           >
             {[0, 1, 2, 3, 4].map((i) => {
@@ -475,40 +323,192 @@ export function WizardAvatar({ state, size = 220 }: WizardAvatarProps) {
               const cy = 110 + Math.sin(angle) * ry
               const glyphs = ['✦', '✧', '⟡', '✶', '◇']
               return (
-                <motion.text
+                <text
                   key={i}
+                  className="wa-rune"
                   x={cx}
                   y={cy}
                   textAnchor="middle"
                   fontSize="13"
                   fill={theme.orb}
-                  opacity={0.85}
-                  animate={{ opacity: [0.3, 0.9, 0.3] }}
-                  transition={{
-                    duration: 1.6,
-                    repeat: Infinity,
-                    delay: i * 0.25,
-                    ease: 'easeInOut',
-                  }}
+                  style={{ animationDelay: `${i * 0.25}s` }}
                 >
                   {glyphs[i]}
-                </motion.text>
+                </text>
               )
             })}
-          </motion.g>
+          </g>
         )}
-      </motion.svg>
+      </svg>
 
       {/* ---- Ambient aura behind the avatar (HTML layer for soft bloom) ---- */}
-      <motion.div
+      <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 rounded-full blur-2xl"
-        style={{ background: `radial-gradient(circle at 50% 45%, ${theme.glow}, transparent 65%)` }}
-        variants={glowVariants}
-        animate={state}
+        className="wa-aura pointer-events-none absolute inset-0 -z-10 rounded-full blur-2xl"
+        style={{
+          background: `radial-gradient(circle at 50% 45%, ${theme.glow}, transparent 65%)`,
+        }}
       />
-    </motion.div>
+    </div>
   )
 }
 
 export default WizardAvatar
+
+/* ------------------------------------------------------------------ *
+ * Scoped CSS keyframes. Kept local (like WizardTaunt) so this honors
+ * strict file ownership while obeying the ANIMATION RULE: every loop is
+ * pure CSS, never framer-motion. Class names are namespaced `wa-`.
+ * ------------------------------------------------------------------ */
+const WA_STYLES = `
+/* ---- body float / tilt ---- */
+@keyframes wa-float-idle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes wa-float-think {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-3px) rotate(2deg); }
+}
+@keyframes wa-float-speak {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes wa-caught-shake {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  20%  { transform: translate(-10px, 4px) rotate(-5deg); }
+  40%  { transform: translate(9px, 2px) rotate(4deg); }
+  60%  { transform: translate(-7px, 3px) rotate(-3deg); }
+  80%  { transform: translate(5px, 1px) rotate(2deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+/* ---- orb / glow / aura breathing ---- */
+@keyframes wa-aura-idle {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 0.7;  transform: scale(1.08); }
+}
+@keyframes wa-aura-think {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.35); }
+}
+@keyframes wa-aura-speak {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.2); }
+}
+@keyframes wa-aura-caught {
+  0%   { opacity: 1;   transform: scale(1.3); }
+  100% { opacity: 0.8; transform: scale(1.15); }
+}
+
+/* ---- shadow ---- */
+@keyframes wa-shadow-idle {
+  0%, 100% { opacity: 0.35; transform: scaleX(1); }
+  50%      { opacity: 0.22; transform: scaleX(0.92); }
+}
+
+/* ---- staff orb / staff glow ---- */
+@keyframes wa-staff-orb-idle {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+@keyframes wa-staff-orb-speak {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.25); }
+}
+@keyframes wa-staff-glow-speak {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.4); }
+}
+
+/* ---- hat star ---- */
+@keyframes wa-star {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* ---- eyes ---- */
+@keyframes wa-eye-think {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+@keyframes wa-eye-caught {
+  0%   { transform: scaleY(1); }
+  25%  { transform: scaleY(0.2); }
+  50%  { transform: scaleY(1); }
+  75%  { transform: scaleY(0.4); }
+  100% { transform: scaleY(1); }
+}
+
+/* ---- mouth glow (speaking) ---- */
+@keyframes wa-mouth-speak {
+  0%, 100% { opacity: 0.2; transform: scaleY(0.66); }
+  50%      { opacity: 0.9; transform: scaleY(1.33); }
+}
+
+/* ---- orbiting runes ---- */
+@keyframes wa-runes-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes wa-rune-twinkle {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.9; }
+}
+
+/* =================== state wiring =================== */
+
+/* Body float (whole SVG). */
+.wa--idle .wa-body     { animation: wa-float-idle 4s ease-in-out infinite; }
+.wa--thinking .wa-body { animation: wa-float-think 5s ease-in-out infinite; }
+.wa--speaking .wa-body { animation: wa-float-speak 1.6s ease-in-out infinite; }
+.wa--caught .wa-body   { animation: wa-caught-shake 0.6s ease-out 1 both; }
+
+/* Aura. */
+.wa-aura { opacity: 0.55; }
+.wa--idle .wa-aura     { animation: wa-aura-idle 4s ease-in-out infinite; }
+.wa--thinking .wa-aura { animation: wa-aura-think 1.4s ease-in-out infinite; }
+.wa--speaking .wa-aura { animation: wa-aura-speak 0.9s ease-in-out infinite; }
+.wa--caught .wa-aura   { animation: wa-aura-caught 0.6s ease-out 1 both; }
+
+/* Floating shadow (idle bob only). */
+.wa--idle .wa-shadow { animation: wa-shadow-idle 4s ease-in-out infinite; }
+
+/* Staff orb. (transform-origin comes from the inline SVG-space coords) */
+.wa--idle .wa-staff-orb,
+.wa--thinking .wa-staff-orb { animation: wa-staff-orb-idle 3s ease-in-out infinite; }
+.wa--speaking .wa-staff-orb { animation: wa-staff-orb-speak 0.7s ease-in-out infinite; }
+
+/* Staff head glow (flares when speaking). */
+.wa-staff-glow { opacity: 0.35; }
+.wa--thinking .wa-staff-glow { opacity: 0.5; }
+.wa--speaking .wa-staff-glow { animation: wa-staff-glow-speak 0.7s ease-in-out infinite; }
+.wa--caught .wa-staff-glow { opacity: 0.25; }
+
+/* Hat star. */
+.wa--idle .wa-star,
+.wa--thinking .wa-star,
+.wa--speaking .wa-star { animation: wa-star 3s ease-in-out infinite; }
+.wa--caught .wa-star { opacity: 0.4; }
+
+/* Eyes. */
+.wa-eye { opacity: 0.9; }
+.wa--speaking .wa-eye { opacity: 1; }
+.wa--thinking .wa-eye { animation: wa-eye-think 1.4s ease-in-out infinite; }
+.wa--caught .wa-eye { animation: wa-eye-caught 0.6s ease-out 1 both; }
+
+/* Mouth glow — only visible while speaking. */
+.wa-mouth { opacity: 0; }
+.wa--speaking .wa-mouth { animation: wa-mouth-speak 0.55s ease-in-out infinite; }
+
+/* Orbiting runes (thinking only). */
+.wa-runes { animation: wa-runes-spin 9s linear infinite; }
+.wa-rune { animation: wa-rune-twinkle 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-body, .wa-aura, .wa-shadow, .wa-staff-orb, .wa-staff-glow,
+  .wa-star, .wa-eye, .wa-mouth, .wa-runes, .wa-rune {
+    animation: none !important;
+  }
+}
+`

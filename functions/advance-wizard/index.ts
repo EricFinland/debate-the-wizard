@@ -26,11 +26,17 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const env = (k: string, fb = "") => Deno.env.get(k) ?? fb;
 const SCORE = { supported: 10, unsupported: 0, misleading: -5 } as const;
 type Verdict = keyof typeof SCORE;
+type Difficulty = "novice" | "adept" | "archmage";
+const DIFFICULTIES: readonly Difficulty[] = ["novice", "adept", "archmage"] as const;
+const normalizeDifficulty = (d: unknown): Difficulty =>
+  DIFFICULTIES.includes(String(d).toLowerCase() as Difficulty) ? (String(d).toLowerCase() as Difficulty) : "adept";
 const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
 const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 
-const BASE = env("INSFORGE_API_URL").replace(/\/+$/, "");
+// Fall back to the known project URL if INSFORGE_API_URL is not in the deployment env.
+const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
+const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
 const DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
 const KEY = env("INSFORGE_API_KEY");
 const DB = `${DATA}/api/database/records`;
@@ -104,9 +110,9 @@ async function judgePipeline(argument: string, topic: string) {
   const query = await extractSearchQuery(argument, topic);
   let citations: Citation[] = [];
   try { citations = await searchYouCom(query); } catch { citations = []; }
-  if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null };
+  if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null, search_query: query };
   const r = await judgeVerdict(argument, citations);
-  return { key_claim: r.key_claim, verdict: r.verdict, rationale: r.rationale, points: SCORE[r.verdict], scores: r.scores, fallacies: r.fallacies, citations, citation_index: r.citation_index };
+  return { key_claim: r.key_claim, verdict: r.verdict, rationale: r.rationale, points: SCORE[r.verdict], scores: r.scores, fallacies: r.fallacies, citations, citation_index: r.citation_index, search_query: query };
 }
 
 // ---------- wizard generation (inlined) ----------
@@ -119,11 +125,40 @@ async function buildAgainstQuery(topic: string, opp: string): Promise<string> {
     return q || fallback;
   } catch { return fallback; }
 }
-async function writeRebuttal(topic: string, opp: string, citations: Citation[]): Promise<string> {
+// Difficulty tunes the wizard's rhetorical strength and how disciplined it is about
+// grounding. The judge still judges fairly, so a weaker wizard genuinely loses more.
+const DIFFICULTY_STYLE: Record<Difficulty, { persona: string; temp: number }> = {
+  novice: {
+    persona:
+      "You are a NOVICE apprentice wizard, still unsure of your craft. Argue the AGAINST side but be tentative and HEDGED: use softeners like \"I think\", \"maybe\", \"it could be\". You are prone to WEAK or OVER-REACHING points and you often lean on a snippet loosely rather than nailing it. Keep it to 2-3 plain sentences.",
+    temp: 0.95,
+  },
+  adept: {
+    persona:
+      "You are an ADEPT wizard, a solid and competent debater. Argue the AGAINST side with a clear, well-structured rebuttal grounded firmly in ONE snippet. Confident but not flashy. Keep it to 2-3 plain sentences.",
+    temp: 0.7,
+  },
+  archmage: {
+    persona:
+      "You are the ARCHMAGE, a master debater of devastating precision. Argue the AGAINST side with a SHARP, rhetorically FORCEFUL rebuttal that is TIGHTLY grounded in ONE snippet you cite with surgical accuracy. Every word lands. Keep it to 2-3 plain sentences.",
+    temp: 0.55,
+  },
+};
+async function writeRebuttal(topic: string, opp: string, citations: Citation[], difficulty: Difficulty): Promise<string> {
   const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
-  const sys = "You are the Wizard, a sharp debate opponent who ALWAYS argues the AGAINST side of the topic. Write a PUNCHY rebuttal of 2-3 sentences. Ground your strongest point in ONE of the SEARCH SNIPPETS and reference it naturally; NEVER invent facts. If an OPPONENT ARGUMENT is given, directly rebut it. Plain prose only, no markdown or preamble. Just the rebuttal.";
+  const style = DIFFICULTY_STYLE[difficulty];
+  const sys = `${style.persona} ALWAYS argue the AGAINST side of the topic. NEVER invent facts; only use what the SEARCH SNIPPETS provide. If an OPPONENT ARGUMENT is given, directly rebut it. Plain prose only, no markdown or preamble. Just the rebuttal.`;
   const user = `TOPIC: ${topic || "(unspecified)"}\n` + (opp ? `OPPONENT ARGUMENT (rebut this): ${opp}\n` : "") + `\nSEARCH SNIPPETS (ground your point in one):\n${list || "(none found)"}`;
-  return (await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: user }], 0.7)).trim();
+  return (await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: user }], style.temp)).trim();
+}
+// Short, in-character wizard taunt themed to the topic. Best-effort; never throws.
+async function writeTaunt(topic: string, argument: string, difficulty: Difficulty): Promise<string> {
+  const tone = difficulty === "novice" ? "a little unsure of yourself" : difficulty === "archmage" ? "supremely arrogant" : "smug and confident";
+  const sys = `You are a debate Wizard who just delivered a rebuttal. Write ONE short in-character taunt sentence (max 18 words), themed to the debate TOPIC with wizard/arcane flavor. Be ${tone}. No profanity, no markdown, no quotes. Output ONLY the taunt.`;
+  try {
+    const t = (await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: `TOPIC: ${topic || "(unspecified)"}\nMY REBUTTAL: ${argument}` }], 0.9)).trim().replace(/^["']|["']$/g, "");
+    return t.split("\n")[0].slice(0, 200);
+  } catch { return ""; }
 }
 function fallbackArgument(topic: string, citations: Citation[]): string {
   const cited = citations.find((c) => c.snippet);
@@ -131,14 +166,15 @@ function fallbackArgument(topic: string, citations: Citation[]): string {
   return `"${topic || "This position"}" is far less settled than it sounds. The opposing side rests on contested premises, and the burden of proof has not been met.`;
 }
 /** Generate + judge the wizard's turn, fully self-contained. */
-async function runWizard(topic: string, opp: string) {
+async function runWizard(topic: string, opp: string, difficulty: Difficulty) {
   let grounding: Citation[] = [];
   try { grounding = await searchYouCom(await buildAgainstQuery(topic, opp)); } catch { grounding = []; }
   let argument: string;
-  try { argument = (await writeRebuttal(topic, opp, grounding)) || fallbackArgument(topic, grounding); }
+  try { argument = (await writeRebuttal(topic, opp, grounding, difficulty)) || fallbackArgument(topic, grounding); }
   catch { argument = fallbackArgument(topic, grounding); }
+  const taunt = await writeTaunt(topic, argument, difficulty);
   const judged = await judgePipeline(argument, topic); // judge runs its OWN fresh search -> authoritative citations
-  return { argument, ...judged };
+  return { argument, taunt, ...judged };
 }
 
 // ---------- db helpers ----------
@@ -180,7 +216,7 @@ export default async function (req: Request): Promise<Response> {
   if (!Number.isFinite(round_no) || round_no < 1) return json({ error: "'round_no' must be >= 1." }, 400);
 
   try {
-    const [room] = await dbSelect("rooms", `id=eq.${room_id}&select=id,topic,status,rounds_total`);
+    const [room] = await dbSelect("rooms", `id=eq.${room_id}&select=id,topic,status,rounds_total,difficulty`);
     if (!room) return json({ error: "Room not found." }, 404);
     if (room.status === "finished") return json({ error: "This match is already finished." }, 409);
     if (round_no > room.rounds_total) return json({ error: `round_no exceeds rounds_total (${room.rounds_total}).` }, 400);
@@ -188,12 +224,14 @@ export default async function (req: Request): Promise<Response> {
     const dupe = await dbSelect("claims", `room_id=eq.${room_id}&round_no=eq.${round_no}&author=eq.wizard&select=id`);
     if (dupe.length) return json({ error: "The wizard already argued this round." }, 409);
 
-    const judged = await runWizard(room.topic, (body.opponent_argument ?? "").trim());
+    const difficulty = normalizeDifficulty(room.difficulty);
+    const judged = await runWizard(room.topic, (body.opponent_argument ?? "").trim(), difficulty);
 
     const [claim] = await dbInsert("claims", [{
       room_id, round_no, author: "wizard", argument: judged.argument,
       key_claim: judged.key_claim ?? null, verdict: judged.verdict ?? null, rationale: judged.rationale ?? null,
       points: judged.points ?? 0, scores: judged.scores ?? null, fallacies: judged.fallacies ?? [],
+      taunt: judged.taunt || null, search_query: judged.search_query ?? null,
     }]);
 
     const cites = judged.citations ?? [];
@@ -209,7 +247,7 @@ export default async function (req: Request): Promise<Response> {
       roomOut = u ?? { ...room, status: "finished" };
     }
 
-    return json({ claim, citations: inserted, score, citation_index: judged.citation_index ?? null, room: roomOut });
+    return json({ claim, citations: inserted, score, citation_index: judged.citation_index ?? null, taunt: judged.taunt || null, search_query: judged.search_query ?? null, room: roomOut });
   } catch (err) {
     return json({ error: String(err instanceof Error ? err.message : err) }, 500);
   }

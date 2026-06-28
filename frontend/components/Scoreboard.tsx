@@ -218,14 +218,12 @@ export function Scoreboard({ you, wizard, round, roundsTotal, status }: Scoreboa
               <span className="font-serif text-lg text-white/40">/</span>
               <span className="font-serif text-lg text-white/60">{roundsTotal}</span>
             </div>
-            <motion.span
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-              className="mt-1 select-none font-serif text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-300/80"
+            <span
+              className="mt-1 select-none font-serif text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-300/80 animate-pulse-glow"
               aria-hidden
             >
               vs
-            </motion.span>
+            </span>
           </div>
 
           <SideCard side={wizardSide} leading={wizardLeading} />

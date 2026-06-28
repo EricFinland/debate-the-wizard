@@ -69,6 +69,7 @@ const config: Config = {
           "linear-gradient(135deg, rgba(168,85,247,0.22), rgba(168,85,247,0.03))",
       },
       keyframes: {
+        // --- LOOPING / DECORATIVE (run forever; CSS only — never framer-motion) ---
         "pulse-glow": {
           "0%, 100%": { opacity: "0.6" },
           "50%": { opacity: "1" },
@@ -81,11 +82,35 @@ const config: Config = {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        sparkle: {
+          "0%, 100%": { opacity: "0", transform: "scale(0.4)" },
+          "50%": { opacity: "1", transform: "scale(1)" },
+        },
+        // --- ONE-SHOT ENTRANCE (play once; CSS only — fine for static mounts) ---
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(12px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
       },
       animation: {
+        // Looping/decorative — infinite is intentional and SAFE because these are
+        // pure CSS (no WAAPI / framer-motion involved).
         "pulse-glow": "pulse-glow 2.4s ease-in-out infinite",
         float: "float 5s ease-in-out infinite",
         shimmer: "shimmer 2.2s linear infinite",
+        sparkle: "sparkle 2.8s ease-in-out infinite",
+        // One-shot entrance helpers (play once). Pair with delay utilities.
+        "fade-in-up": "fade-in-up 0.5s ease-out both",
+        "fade-in": "fade-in 0.4s ease-out both",
+        "scale-in": "scale-in 0.4s ease-out both",
       },
     },
   },

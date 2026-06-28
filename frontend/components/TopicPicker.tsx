@@ -321,15 +321,12 @@ export function TopicPicker({ onStart, loading = false }: TopicPickerProps) {
 }
 
 function SpinnerRune() {
+  // CSS-only spin (Tailwind's built-in `animate-spin` keyframe) per the
+  // ANIMATION RULE — looping motion must never use framer-motion.
   return (
-    <motion.span
-      className="text-xl leading-none"
-      animate={{ rotate: 360 }}
-      transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
-      aria-hidden
-    >
+    <span className="inline-block text-xl leading-none animate-spin" aria-hidden>
       ✶
-    </motion.span>
+    </span>
   )
 }
 
@@ -344,24 +341,22 @@ function StarField() {
     const dur = 2.5 + ((seed >> 3) % 30) / 10
     return { left, top, size, delay, dur, id: i }
   })
+  // Twinkle is a pure-CSS keyframe loop (`animate-sparkle`) per the ANIMATION
+  // RULE — per-star timing is carried via inline animationDuration/Delay so the
+  // scatter still feels organic without any framer-motion infinite loops.
   return (
     <div className="absolute inset-0">
       {stars.map((s) => (
-        <motion.span
+        <span
           key={s.id}
-          className="absolute rounded-full bg-violet-200"
+          className="absolute rounded-full bg-violet-200 animate-sparkle"
           style={{
             left: `${s.left}%`,
             top: `${s.top}%`,
             width: s.size,
             height: s.size,
-          }}
-          animate={{ opacity: [0.1, 0.7, 0.1] }}
-          transition={{
-            repeat: Infinity,
-            duration: s.dur,
-            delay: s.delay,
-            ease: 'easeInOut',
+            animationDuration: `${s.dur}s`,
+            animationDelay: `${s.delay}s`,
           }}
         />
       ))}

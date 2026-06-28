@@ -1,9 +1,11 @@
 // create-room — start a match. Creates a room + two players (A=human, B=wizard).
 // Owned by the orchestration/infra track ("the rest").
 //
-// POST { "topic"?: string, "topic_id"?: string, "rounds_total"?: number }
+// POST { "topic"?: string, "topic_id"?: string, "rounds_total"?: number,
+//        "difficulty"?: "novice"|"adept"|"archmage", "host_user_id"?: string }
 //   - pass topic_id to use a pre-vetted demo topic (see SEED_TOPICS), or
 //   - pass a freeform topic string.
+//   - difficulty defaults to 'adept'; host_user_id is optional.
 // Returns { room, players, topic_meta }.
 //
 // Deploy: npx @insforge/cli functions deploy create-room --file functions/create-room/index.ts --name "Create room"
@@ -30,8 +32,12 @@ const CORS = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
 
-const BASE = (Deno.env.get("INSFORGE_API_URL") ?? "").replace(/\/+$/, "");
-const DATA = (Deno.env.get("INSFORGE_DATA_URL") ?? BASE).replace(/\/+$/, ""); // records API may live on a different host
+// The data/records API is served from the project origin. Prefer the configured
+// env var, but fall back to the known project URL so the function still works if
+// INSFORGE_API_URL is not injected into the deployment env.
+const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
+const BASE = ((Deno.env.get("INSFORGE_API_URL") ?? "") || DEFAULT_BASE).replace(/\/+$/, "");
+const DATA = ((Deno.env.get("INSFORGE_DATA_URL") ?? "") || BASE).replace(/\/+$/, ""); // records API may live on a different host
 const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
 const DB = `${DATA}/api/database/records`;
 const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
@@ -47,7 +53,7 @@ export default async function (req: Request): Promise<Response> {
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   if (!BASE || !KEY) return json({ error: "INSFORGE_API_URL / INSFORGE_API_KEY not configured." }, 500);
 
-  let body: { topic?: string; topic_id?: string; rounds_total?: number };
+  let body: { topic?: string; topic_id?: string; rounds_total?: number; difficulty?: string; host_user_id?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON body." }, 400); }
 
   const seed = body.topic_id ? SEED_TOPICS[body.topic_id] : undefined;
@@ -56,8 +62,12 @@ export default async function (req: Request): Promise<Response> {
 
   const rounds_total = Math.max(1, Math.min(10, Number(body.rounds_total) || 5));
 
+  const DIFFICULTIES = ["novice", "adept", "archmage"];
+  const difficulty = DIFFICULTIES.includes(String(body.difficulty)) ? String(body.difficulty) : "adept";
+  const host_user_id = typeof body.host_user_id === "string" && body.host_user_id.trim() ? body.host_user_id.trim() : null;
+
   try {
-    const [room] = await dbInsert("rooms", [{ topic, status: "active", rounds_total }]);
+    const [room] = await dbInsert("rooms", [{ topic, status: "active", rounds_total, difficulty, host_user_id }]);
     const players = await dbInsert("players", [
       { room_id: room.id, side: "A", score: 0 },
       { room_id: room.id, side: "B", score: 0 },

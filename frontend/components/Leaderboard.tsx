@@ -40,25 +40,18 @@ function scoreTone(score: number): string {
   return 'text-rose-300'
 }
 
-function statusLabel(status: string | null | undefined): { label: string; cls: string } {
-  switch (status) {
-    case 'complete':
-    case 'completed':
-    case 'finished':
-      return { label: 'Concluded', cls: 'text-emerald-300/80 border-emerald-400/20 bg-emerald-400/5' }
-    case 'active':
-    case 'in_progress':
-      return { label: 'Dueling', cls: 'text-violet-300/80 border-violet-400/20 bg-violet-400/5' }
-    default:
-      return { label: status || 'Sealed', cls: 'text-zinc-400/80 border-zinc-400/15 bg-zinc-400/5' }
-  }
+/** Best-effort display name for a champion row. */
+function championName(entry: LeaderboardEntry): string {
+  const n = entry.display_name?.trim()
+  return n && n.length > 0 ? n : 'A nameless challenger'
 }
 
-function formatWhen(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+/** Two-letter initials for the avatar fallback. */
+function championInitials(entry: LeaderboardEntry): string {
+  const n = championName(entry)
+  const parts = n.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return n.slice(0, 2).toUpperCase()
 }
 
 function HallShell({ children }: { children: React.ReactNode }) {
@@ -143,22 +136,26 @@ export function Leaderboard({ entries, loading = false }: LeaderboardProps) {
     )
   }
 
-  // Highest score first.
-  const ranked = [...entries].sort((a, b) => b.score - a.score)
-  const topScore = Math.max(1, ranked[0]?.score ?? 1)
+  // Rank by lifetime wins, then total score (mirrors the backend ordering).
+  const ranked = [...entries].sort(
+    (a, b) => b.wins - a.wins || b.total_score - a.total_score,
+  )
+  const topScore = Math.max(1, ranked[0]?.total_score ?? 1)
 
   return (
     <HallShell>
       <ol className="space-y-2">
         {ranked.map((entry, idx) => {
           const medalStyle = RANK_STYLES[idx]
-          const pct = Math.max(6, Math.min(100, (entry.score / topScore) * 100))
-          const status = statusLabel(entry.status)
-          const when = formatWhen(entry.created_at)
+          const name = championName(entry)
+          const pct = Math.max(
+            6,
+            Math.min(100, (Math.max(entry.total_score, 0) / topScore) * 100),
+          )
 
           return (
             <motion.li
-              key={entry.room_id}
+              key={`${entry.display_name ?? 'anon'}-${idx}`}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.4), ease: 'easeOut' }}
@@ -189,27 +186,38 @@ export function Leaderboard({ entries, loading = false }: LeaderboardProps) {
                 )}
               </div>
 
-              {/* topic + meta */}
+              {/* avatar */}
+              <div className="relative z-10 shrink-0">
+                {entry.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={entry.avatar_url}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover ring-1 ring-violet-400/30"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-500/40 to-amber-400/40 text-[11px] font-bold text-zinc-50 ring-1 ring-violet-400/30">
+                    {championInitials(entry)}
+                  </span>
+                )}
+              </div>
+
+              {/* name + W-L record */}
               <div className="relative z-10 min-w-0 flex-1">
                 <p
                   className={cn(
                     'truncate text-sm font-medium leading-snug',
                     medalStyle ? medalStyle.text : 'text-zinc-100',
                   )}
-                  title={entry.topic ?? undefined}
+                  title={name}
                 >
-                  {entry.topic || 'An untitled duel'}
+                  {name}
                 </p>
-                <div className="mt-1 flex items-center gap-2 text-[10px]">
-                  <span
-                    className={cn(
-                      'rounded-full border px-1.5 py-px font-medium uppercase tracking-wide',
-                      status.cls,
-                    )}
-                  >
-                    {status.label}
-                  </span>
-                  {when && <span className="text-zinc-500">{when}</span>}
+                <div className="mt-1 flex items-center gap-2 text-[10px] tabular-nums">
+                  <span className="text-emerald-300/80">{entry.wins}W</span>
+                  <span className="text-zinc-600">·</span>
+                  <span className="text-rose-300/80">{entry.losses}L</span>
                 </div>
               </div>
 
@@ -218,11 +226,11 @@ export function Leaderboard({ entries, loading = false }: LeaderboardProps) {
                 <span
                   className={cn(
                     'text-base font-bold tabular-nums leading-none',
-                    scoreTone(entry.score),
+                    scoreTone(entry.total_score),
                   )}
                   style={{ fontFamily: 'Cinzel, Georgia, serif' }}
                 >
-                  {entry.score > 0 ? `+${entry.score}` : entry.score}
+                  {entry.total_score > 0 ? `+${entry.total_score}` : entry.total_score}
                 </span>
                 <span className="mt-0.5 text-[9px] uppercase tracking-[0.15em] text-violet-300/40">
                   pts
