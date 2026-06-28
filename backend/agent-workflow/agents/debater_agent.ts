@@ -24,13 +24,16 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
     }),
   ]);
 
-  let synthesis = await synthesizeDebateRebuttal({
+  const promptInputs = {
     user_argument: input.user_argument,
     user_claim_report: userClaimReport,
     search_evidence: searchEvidence,
     fact_check_report: factCheckReport,
     fallacy_report: fallacyReport,
-  });
+    history: input.history,
+  };
+
+  let synthesis = await synthesizeDebateRebuttal(promptInputs);
 
   let selfCheck = selfCheckRebuttal(input.user_argument, synthesis, difficulty);
   let retried = false;
@@ -44,6 +47,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
       fact_check_report: factCheckReport,
       fallacy_report: fallacyReport,
       previous_issues: selfCheck.issues,
+      history: input.history,
     });
     selfCheck = selfCheckRebuttal(input.user_argument, synthesis, difficulty);
   }

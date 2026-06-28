@@ -33,12 +33,15 @@ export function buildDebaterUserPrompt(input: {
   fact_check_report: FactCheckReport;
   fallacy_report: FallacyReport;
   previous_issues?: string[];
+  history?: import("../types/common.ts").DebateHistoryEntry[];
 }): string {
   const retryNote = input.previous_issues?.length
     ? `RETRY_INSTRUCTIONS:\nFix these self-check issues: ${input.previous_issues.join("; ")}`
     : "";
+  const historyStr = input.history?.length ? `DEBATE HISTORY:\n${JSON.stringify(input.history, null, 2)}` : "";
 
   return [
+    historyStr,
     `USER_ARGUMENT:\n${input.user_argument}`,
     `USER_CLAIM_REPORT:\n${JSON.stringify(input.user_claim_report, null, 2)}`,
     `SEARCH_EVIDENCE:\n${JSON.stringify(input.search_evidence, null, 2)}`,

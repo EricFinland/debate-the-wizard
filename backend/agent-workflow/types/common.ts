@@ -54,7 +54,14 @@ export interface FallacyReport {
   overall_logic_quality: LogicQuality;
 }
 
+export interface DebateHistoryEntry {
+  round_no: number;
+  author: "player" | "wizard";
+  argument: string;
+}
+
 export interface AgentWorkflowInput {
   user_argument: string;
-  difficulty?: import("../config/difficulty.ts").Difficulty;
+  difficulty?: Difficulty;
+  history?: DebateHistoryEntry[];
 }

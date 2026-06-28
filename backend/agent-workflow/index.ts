@@ -36,6 +36,7 @@ export async function runAgentWorkflow(input: AgentWorkflowInput): Promise<Agent
   const debaterResult = await runDebaterAgent({
     user_argument: input.user_argument,
     difficulty: input.difficulty,
+    history: input.history,
   });
   const judgeResult = await runJudgeAgent({
     user_argument: input.user_argument,
@@ -48,6 +49,8 @@ export async function runAgentWorkflow(input: AgentWorkflowInput): Promise<Agent
 
   return {
     user_argument: input.user_argument,
+    difficulty: input.difficulty,
+    history: input.history,
     ai_rebuttal: debaterResult.ai_rebuttal,
     user_claim_report: debaterResult.user_claim_report,
     search_evidence: debaterResult.search_evidence,

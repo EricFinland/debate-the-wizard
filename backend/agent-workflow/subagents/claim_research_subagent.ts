@@ -11,7 +11,7 @@ export async function runClaimResearchSubAgent(input: {
 }): Promise<ClaimResearchResult> {
   const userClaimReport = normalizeUserClaimReport(await callModelJson<UserClaimReport>({
     systemPrompt: CLAIM_RESEARCH_SYSTEM_PROMPT,
-    userPrompt: buildClaimResearchUserPrompt(input.user_argument),
+    userPrompt: buildClaimResearchUserPrompt(input),
     temperature: 0.1,
   }), input.user_argument);
   const citations = await searchYouCom(userClaimReport.search_query);

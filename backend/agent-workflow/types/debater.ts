@@ -1,6 +1,10 @@
 import type { AgentWorkflowInput, FactCheckReport, FallacyReport, SearchEvidence, UserClaimReport } from "./common.ts";
 
-export type DebaterInput = AgentWorkflowInput;
+export interface DebaterInput extends AgentWorkflowInput {
+  user_argument: string;
+  difficulty?: import("../config/difficulty.ts").Difficulty;
+  history?: import("./common.ts").DebateHistoryEntry[];
+}
 
 export interface DebaterSynthesis {
   ai_rebuttal: string;

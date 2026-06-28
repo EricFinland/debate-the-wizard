@@ -30,6 +30,8 @@ Return JSON only in this exact shape:
 Keep every field concise for a fast live demo. The search_query should be no more than 14 words.
 `.trim();
 
-export function buildClaimResearchUserPrompt(userArgument: string): string {
-  return `USER_ARGUMENT:\n${userArgument}`;
+export function buildClaimResearchUserPrompt(input: {
+  user_argument: string;
+}): string {
+  return `USER_ARGUMENT:\n${input.user_argument}`;
 }
