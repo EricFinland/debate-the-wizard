@@ -1,7 +1,7 @@
 // health — liveness + config sanity check ("the rest" track).
 // GET -> { ok, service, time, config: { gateway, db, youcom } }
 //
-// Deploy: npx @insforge/cli functions deploy health --file functions/health/index.ts --name "Health"
+// Deploy: npx @insforge/cli functions deploy health --file backend/functions/health/index.ts --name "Health"
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

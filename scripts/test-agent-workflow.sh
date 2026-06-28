@@ -19,7 +19,7 @@ fi
 ARGUMENT="${1:-Nuclear power is bad for the climate because it creates dangerous waste and takes too long to build.}"
 
 TEST_ARGUMENT="$ARGUMENT" npx --yes tsx -e '
-import { runAgentWorkflow } from "./agent-workflow/index.ts";
+import { runAgentWorkflow } from "./backend/agent-workflow/index.ts";
 
 async function main() {
   const result = await runAgentWorkflow({

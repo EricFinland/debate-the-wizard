@@ -29,7 +29,7 @@ npx @insforge/cli db migrations up --all
 npx @insforge/cli db tables                     # verify: rooms, players, claims, citations
 ```
 
-The schema lives in [`migrations/20260628120000_init.sql`](migrations/20260628120000_init.sql).
+The schema lives in [`backend/migrations/20260628120000_init.sql`](backend/migrations/20260628120000_init.sql).
 
 ## 3. Store the secrets
 
@@ -55,7 +55,7 @@ The core pipeline (agent-pipeline track):
 
 ```bash
 npx @insforge/cli functions deploy judge-claim \
-  --file functions/judge-claim/index.ts \
+  --file backend/functions/judge-claim/index.ts \
   --name "Judge a claim" \
   --description "Grounds a debate claim in You.com results and rules supported/unsupported/misleading"
 ```
@@ -63,12 +63,12 @@ npx @insforge/cli functions deploy judge-claim \
 The orchestration / infra functions ("the rest" track):
 
 ```bash
-npx @insforge/cli functions deploy create-room     --file functions/create-room/index.ts     --name "Create room"
-npx @insforge/cli functions deploy submit-argument --file functions/submit-argument/index.ts --name "Submit argument"
-npx @insforge/cli functions deploy advance-wizard  --file functions/advance-wizard/index.ts  --name "Advance wizard"
-npx @insforge/cli functions deploy get-room        --file functions/get-room/index.ts        --name "Get room"
-npx @insforge/cli functions deploy leaderboard     --file functions/leaderboard/index.ts     --name "Leaderboard"
-npx @insforge/cli functions deploy health          --file functions/health/index.ts          --name "Health"
+npx @insforge/cli functions deploy create-room     --file backend/functions/create-room/index.ts     --name "Create room"
+npx @insforge/cli functions deploy submit-argument --file backend/functions/submit-argument/index.ts --name "Submit argument"
+npx @insforge/cli functions deploy advance-wizard  --file backend/functions/advance-wizard/index.ts  --name "Advance wizard"
+npx @insforge/cli functions deploy get-room        --file backend/functions/get-room/index.ts        --name "Get room"
+npx @insforge/cli functions deploy leaderboard     --file backend/functions/leaderboard/index.ts     --name "Leaderboard"
+npx @insforge/cli functions deploy health          --file backend/functions/health/index.ts          --name "Health"
 
 npx @insforge/cli functions list
 ```

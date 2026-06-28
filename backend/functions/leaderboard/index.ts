@@ -4,29 +4,16 @@
 //
 // GET (or POST) -> { leaderboard: [{ display_name, avatar_url, wins, losses, total_score }] }
 //
-// Deploy: npx @insforge/cli functions deploy leaderboard --file functions/leaderboard/index.ts --name "Leaderboard"
+// Deploy: npx @insforge/cli functions deploy leaderboard --file backend/functions/leaderboard/index.ts --name "Leaderboard"
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Content-Type": "application/json",
-};
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
+import { CORS, DEFAULT_BASE, env, json } from "../_shared/config.ts";
+import { makeDb } from "../_shared/db.ts";
 
-// Fall back to the known project URL if INSFORGE_API_URL is not in the deployment env.
-const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
-const BASE = ((Deno.env.get("INSFORGE_API_URL") ?? "") || DEFAULT_BASE).replace(/\/+$/, "");
-const DATA = ((Deno.env.get("INSFORGE_DATA_URL") ?? "") || BASE).replace(/\/+$/, "");
-const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${DATA}/api/database/records`;
-const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
+const DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
+const KEY = env("INSFORGE_API_KEY");
 
-async function dbSelect(table: string, query = ""): Promise<any[]> {
-  const res = await fetch(`${DB}/${table}${query ? `?${query}` : ""}`, { headers: H });
-  if (!res.ok) throw new Error(`select ${table} ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
+const { dbSelect } = makeDb(DATA, KEY);
 
 // Legacy fallback: rank one-off side-A (human) players by score.
 async function legacyLeaderboard(limit: number) {

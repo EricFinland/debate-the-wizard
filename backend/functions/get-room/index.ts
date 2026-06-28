@@ -1,30 +1,19 @@
 // get-room — full room state for reconnect, spectating, and the end-game recap.
-// ("the rest" track). Read-only.
+// Read-only.
 //
 // POST { "room_id": uuid }
 // Returns { room, players, scores, claims (each with citations), winner }.
 //
-// Deploy: npx @insforge/cli functions deploy get-room --file functions/get-room/index.ts --name "Get room"
+// Deploy: npx @insforge/cli functions deploy get-room --file backend/functions/get-room/index.ts --name "Get room"
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Content-Type": "application/json",
-};
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
+import { CORS, DEFAULT_BASE, env, json } from "../_shared/config.ts";
+import { makeDb } from "../_shared/db.ts";
 
-const BASE = (Deno.env.get("INSFORGE_API_URL") ?? "").replace(/\/+$/, "");
-const DATA = (Deno.env.get("INSFORGE_DATA_URL") ?? BASE).replace(/\/+$/, "");
-const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${DATA}/api/database/records`;
-const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
+const DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
+const KEY = env("INSFORGE_API_KEY");
 
-async function dbSelect(table: string, query = ""): Promise<any[]> {
-  const res = await fetch(`${DB}/${table}${query ? `?${query}` : ""}`, { headers: H });
-  if (!res.ok) throw new Error(`select ${table} ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
+const { dbSelect } = makeDb(DATA, KEY);
 
 export default async function (req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });

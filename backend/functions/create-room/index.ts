@@ -1,5 +1,4 @@
 // create-room — start a match. Creates a room + two players (A=human, B=wizard).
-// Owned by the orchestration/infra track ("the rest").
 //
 // POST { "topic"?: string, "topic_id"?: string, "rounds_total"?: number,
 //        "difficulty"?: "novice"|"adept"|"archmage"|"impossible", "host_user_id"?: string }
@@ -8,7 +7,10 @@
 //   - difficulty defaults to 'adept'; host_user_id is optional.
 // Returns { room, players, topic_meta }.
 //
-// Deploy: npx @insforge/cli functions deploy create-room --file functions/create-room/index.ts --name "Create room"
+// Deploy: npx @insforge/cli functions deploy create-room --file backend/functions/create-room/index.ts --name "Create room"
+
+import { CORS, DEFAULT_BASE, env, json } from "../_shared/config.ts";
+import { makeDb } from "../_shared/db.ts";
 
 // --- pre-vetted demo topics (kept in sync with seed/topics.json) ---
 const SEED_TOPICS: Record<string, { topic: string; human_side_label: string; wizard_side_label: string }> = {
@@ -24,29 +26,11 @@ const SEED_TOPICS: Record<string, { topic: string; human_side_label: string; wiz
   },
 };
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Content-Type": "application/json",
-};
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
+const BASE = ((env("INSFORGE_API_URL")) || DEFAULT_BASE).replace(/\/+$/, "");
+const DATA = ((env("INSFORGE_DATA_URL")) || BASE).replace(/\/+$/, "");
+const KEY = env("INSFORGE_API_KEY");
 
-// The data/records API is served from the project origin. Prefer the configured
-// env var, but fall back to the known project URL so the function still works if
-// INSFORGE_API_URL is not injected into the deployment env.
-const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
-const BASE = ((Deno.env.get("INSFORGE_API_URL") ?? "") || DEFAULT_BASE).replace(/\/+$/, "");
-const DATA = ((Deno.env.get("INSFORGE_DATA_URL") ?? "") || BASE).replace(/\/+$/, ""); // records API may live on a different host
-const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${DATA}/api/database/records`;
-const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
-
-async function dbInsert(table: string, rows: unknown[]): Promise<any[]> {
-  const res = await fetch(`${DB}/${table}`, { method: "POST", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify(rows) });
-  if (!res.ok) throw new Error(`insert ${table} ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
+const { dbInsert } = makeDb(DATA, KEY);
 
 export default async function (req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });

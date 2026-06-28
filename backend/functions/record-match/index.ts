@@ -9,49 +9,16 @@
 // Self-contained: no calls to other edge functions (InsForge runs all functions as one
 // Deno deployment, so cross-function fetch returns 508 Loop Detected). Uses the data API directly.
 //
-// Deploy: npx @insforge/cli functions deploy record-match --file functions/record-match/index.ts --name "Record Match"
+// Deploy: npx @insforge/cli functions deploy record-match --file backend/functions/record-match/index.ts --name "Record Match"
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Content-Type": "application/json",
-};
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
+import { CORS, DEFAULT_BASE, env, json } from "../_shared/config.ts";
+import { makeDb } from "../_shared/db.ts";
 
-// Fall back to the known project URL if INSFORGE_API_URL is not in the deployment env.
-const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
-const BASE = ((Deno.env.get("INSFORGE_API_URL") ?? "") || DEFAULT_BASE).replace(/\/+$/, "");
-const DATA = ((Deno.env.get("INSFORGE_DATA_URL") ?? "") || BASE).replace(/\/+$/, "");
-const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${DATA}/api/database/records`;
-const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
+const DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
+const KEY = env("INSFORGE_API_KEY");
 
-async function dbSelect(table: string, query = ""): Promise<any[]> {
-  const res = await fetch(`${DB}/${table}${query ? `?${query}` : ""}`, { headers: H });
-  if (!res.ok) throw new Error(`select ${table} ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
-
-async function dbInsert(table: string, rows: any[]): Promise<any[]> {
-  const res = await fetch(`${DB}/${table}`, {
-    method: "POST",
-    headers: { ...H, Prefer: "return=representation" },
-    body: JSON.stringify(rows),
-  });
-  if (!res.ok) throw new Error(`insert ${table} ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
-
-async function dbUpdate(table: string, query: string, patch: any): Promise<any[]> {
-  const res = await fetch(`${DB}/${table}?${query}`, {
-    method: "PATCH",
-    headers: { ...H, Prefer: "return=representation" },
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) throw new Error(`update ${table} ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
+const { dbSelect, dbInsert, dbUpdate } = makeDb(DATA, KEY);
 
 export default async function (req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });

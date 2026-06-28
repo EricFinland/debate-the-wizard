@@ -103,16 +103,16 @@ get-room(room_id)                      -> final scores, winner, full citation tr
 
 ## Typed client
 
-Frontend imports `client/` instead of hand-rolling fetches:
+Frontend imports `backend/client/` instead of hand-rolling fetches:
 
 ```ts
-import { createDebateClient } from "../client";
+import { createDebateClient } from "../backend/client";
 const api = createDebateClient(process.env.NEXT_PUBLIC_INSFORGE_URL!);
 const { room } = await api.createRoom({ topic_id: "nuclear-climate" });
 const turn = await api.submitArgument({ room_id: room.id, round_no: 1, argument });
 ```
 
-All request/response types live in `client/types.ts` and mirror the contracts above.
+All request/response types live in `backend/client/types.ts` and mirror the contracts above.
 
 ## Env / secrets every function reads
 
