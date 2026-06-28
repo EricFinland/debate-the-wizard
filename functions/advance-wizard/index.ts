@@ -26,8 +26,8 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const env = (k: string, fb = "") => Deno.env.get(k) ?? fb;
 const SCORE = { supported: 10, unsupported: 0, misleading: -5 } as const;
 type Verdict = keyof typeof SCORE;
-type Difficulty = "novice" | "adept" | "archmage";
-const DIFFICULTIES: readonly Difficulty[] = ["novice", "adept", "archmage"] as const;
+type Difficulty = "novice" | "adept" | "archmage" | "impossible";
+const DIFFICULTIES: readonly Difficulty[] = ["novice", "adept", "archmage", "impossible"] as const;
 const normalizeDifficulty = (d: unknown): Difficulty =>
   DIFFICULTIES.includes(String(d).toLowerCase() as Difficulty) ? (String(d).toLowerCase() as Difficulty) : "adept";
 const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
@@ -132,6 +132,11 @@ const DIFFICULTY_STYLE: Record<Difficulty, { persona: string; temp: number }> = 
       "You are the ARCHMAGE, a master debater of devastating precision. Argue the AGAINST side with a SHARP, rhetorically FORCEFUL rebuttal that is TIGHTLY grounded in ONE snippet you cite with surgical accuracy. Every word lands. Keep it to 2-3 plain sentences.",
     temp: 0.55,
   },
+  impossible: {
+    persona:
+      "You are the LICH KING, an undying force of pure argumentation beyond mortal reckoning. Argue the AGAINST side with ABSOLUTE precision: your rebuttal must be IRREFUTABLY grounded in ONE snippet, devastatingly concise, rhetorically airtight, and leave no opening for counterattack. Every word is chosen with lethal intent. Keep it to 2-3 plain sentences.",
+    temp: 0.3,
+  },
 };
 async function writeRebuttal(topic: string, opp: string, citations: Citation[], difficulty: Difficulty): Promise<string> {
   const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
@@ -142,7 +147,7 @@ async function writeRebuttal(topic: string, opp: string, citations: Citation[], 
 }
 // Short, in-character wizard taunt themed to the topic. Best-effort; never throws.
 async function writeTaunt(topic: string, argument: string, difficulty: Difficulty): Promise<string> {
-  const tone = difficulty === "novice" ? "a little unsure of yourself" : difficulty === "archmage" ? "supremely arrogant" : "smug and confident";
+  const tone = difficulty === "novice" ? "a little unsure of yourself" : difficulty === "archmage" ? "supremely arrogant" : difficulty === "impossible" ? "coldly omniscient, as if you have already won" : "smug and confident";
   const sys = `You are a debate Wizard who just delivered a rebuttal. Write ONE short in-character taunt sentence (max 18 words), themed to the debate TOPIC with wizard/arcane flavor. Be ${tone}. No profanity, no markdown, no quotes. Output ONLY the taunt.`;
   try {
     const t = (await chat(JUDGE_MODEL, [{ role: "system", content: sys }, { role: "user", content: `TOPIC: ${topic || "(unspecified)"}\nMY REBUTTAL: ${argument}` }], 0.9)).trim().replace(/^["']|["']$/g, "");

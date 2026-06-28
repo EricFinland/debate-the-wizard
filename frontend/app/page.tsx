@@ -116,6 +116,8 @@ export default function Page() {
   const [lobbyRooms, setLobbyRooms] = useState<SpectatorRoom[]>([]);
   const [lobbyLoading, setLobbyLoading] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  // The user's opening argument — auto-submitted as Round 1 when arena mounts.
+  const [openingArg, setOpeningArg] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -123,6 +125,23 @@ export default function Page() {
   useEffect(() => {
     if (view === "picker") void actions.loadLeaderboard();
   }, [view, actions]);
+
+  // ---- Auto-submit Round 1 with the user's opening argument ---------------
+  useEffect(() => {
+    if (
+      view === "arena" &&
+      openingArg &&
+      round === 1 &&
+      claims.length === 0 &&
+      !busy &&
+      !wizardThinking
+    ) {
+      const arg = openingArg;
+      setOpeningArg(null);
+      void actions.submitArgument(arg);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, openingArg, round, claims.length, busy, wizardThinking]);
 
   // ---- Spectator lobby loading --------------------------------------------
   const loadLobby = useCallback(async () => {
@@ -387,9 +406,11 @@ export default function Page() {
                       </section>
 
                       <TopicPicker
-                        onStart={(input) =>
+                        onStart={(input) => {
+                          // Save the argument text so we can auto-submit it as Round 1
+                          if (input.topic) setOpeningArg(input.topic)
                           actions.start({ ...input, difficulty })
-                        }
+                        }}
                         loading={busy}
                       />
                     </div>
@@ -480,8 +501,9 @@ export default function Page() {
                     <div className="flex max-h-[52vh] flex-col gap-4 overflow-y-auto rounded-2xl p-1">
                       {claims.length === 0 && (
                         <div className="glass rounded-2xl px-6 py-10 text-center text-zinc-400">
-                          Make your opening argument. The wizard will respond —
-                          and both of you get fact-checked.
+                          {busy || wizardThinking
+                            ? 'Your opening argument is being fact-checked…'
+                            : 'The duel is about to begin. Brace yourself.'}
                         </div>
                       )}
 

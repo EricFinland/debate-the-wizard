@@ -1,4 +1,6 @@
 import type { DebaterSynthesis } from "../types/debater.ts";
+import type { Difficulty } from "../config/difficulty.ts";
+import { getMinConfidence } from "../config/difficulty.ts";
 
 export interface SelfCheckResult {
   passed: boolean;
@@ -6,9 +8,8 @@ export interface SelfCheckResult {
 }
 
 const MAX_REBUTTAL_WORDS = 180;
-const MIN_CONFIDENCE = 0.45;
 
-export function selfCheckRebuttal(userArgument: string, synthesis: DebaterSynthesis): SelfCheckResult {
+export function selfCheckRebuttal(userArgument: string, synthesis: DebaterSynthesis, difficulty?: Difficulty): SelfCheckResult {
   const issues: string[] = [];
   const rebuttal = synthesis.ai_rebuttal?.trim() ?? "";
 
@@ -28,8 +29,8 @@ export function selfCheckRebuttal(userArgument: string, synthesis: DebaterSynthe
     issues.push("Rebuttal has no clear counterpoint.");
   }
 
-  if (!Number.isFinite(synthesis.confidence) || synthesis.confidence < MIN_CONFIDENCE) {
-    issues.push(`Confidence is too low; expected at least ${MIN_CONFIDENCE}.`);
+  if (!Number.isFinite(synthesis.confidence) || synthesis.confidence < getMinConfidence(difficulty)) {
+    issues.push(`Confidence is too low; expected at least ${getMinConfidence(difficulty)}.`);
   }
 
   return {

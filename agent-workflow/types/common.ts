@@ -1,3 +1,5 @@
+export type { Difficulty } from "../config/difficulty.ts";
+
 export type Reliability = "high" | "medium" | "low";
 
 export type Severity = "low" | "medium" | "high";
@@ -54,4 +56,5 @@ export interface FallacyReport {
 
 export interface AgentWorkflowInput {
   user_argument: string;
+  difficulty?: import("../config/difficulty.ts").Difficulty;
 }

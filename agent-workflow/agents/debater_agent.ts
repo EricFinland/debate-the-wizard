@@ -10,6 +10,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
   const { user_claim_report: userClaimReport, search_evidence: searchEvidence } = await runClaimResearchSubAgent({
     user_argument: input.user_argument,
   });
+  const { difficulty } = input;
 
   const [factCheckReport, fallacyReport] = await Promise.all([
     runFactCheckSubAgent({
@@ -31,7 +32,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
     fallacy_report: fallacyReport,
   });
 
-  let selfCheck = selfCheckRebuttal(input.user_argument, synthesis);
+  let selfCheck = selfCheckRebuttal(input.user_argument, synthesis, difficulty);
   let retried = false;
 
   if (!selfCheck.passed) {
@@ -44,7 +45,7 @@ export async function runDebaterAgent(input: DebaterInput): Promise<DebaterResul
       fallacy_report: fallacyReport,
       previous_issues: selfCheck.issues,
     });
-    selfCheck = selfCheckRebuttal(input.user_argument, synthesis);
+    selfCheck = selfCheckRebuttal(input.user_argument, synthesis, difficulty);
   }
 
   return {

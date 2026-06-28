@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/ui";
 
-export type Difficulty = "novice" | "adept" | "archmage";
+export type Difficulty = "novice" | "adept" | "archmage" | "impossible";
 
 export interface DifficultyPickerProps {
   value: Difficulty;
@@ -47,6 +47,15 @@ const OPTIONS: DifficultyOption[] = [
     sigil: "✶",
     power: 3,
   },
+  {
+    id: "impossible",
+    title: "Impossible",
+    subtitle: "Lich King",
+    flavor:
+      "An undying force of pure argumentation. Every word is a blade. Only the most airtight logic survives.",
+    sigil: "☽",
+    power: 4,
+  },
 ];
 
 export function DifficultyPicker({ value, onChange }: DifficultyPickerProps) {
@@ -54,7 +63,7 @@ export function DifficultyPicker({ value, onChange }: DifficultyPickerProps) {
     <div
       role="radiogroup"
       aria-label="Choose wizard difficulty"
-      className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3"
+      className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
     >
       {OPTIONS.map((opt, i) => {
         const selected = value === opt.id;
@@ -104,15 +113,19 @@ export function DifficultyPicker({ value, onChange }: DifficultyPickerProps) {
 
               {/* Power pips */}
               <span className="flex items-center gap-1" aria-hidden>
-                {[0, 1, 2].map((p) => (
+                {[0, 1, 2, 3].map((p) => (
                   <span
                     key={p}
                     className={cn(
                       "h-1.5 w-1.5 rounded-full transition-all duration-300",
                       p < opt.power
                         ? selected
-                          ? "bg-arcane-300 shadow-glow-arcane"
-                          : "bg-arcane-400/60 group-hover:bg-arcane-300"
+                          ? opt.id === "impossible"
+                            ? "bg-rose-400 shadow-[0_0_6px_theme(colors.rose.400)]"
+                            : "bg-arcane-300 shadow-glow-arcane"
+                          : opt.id === "impossible"
+                            ? "bg-rose-500/60 group-hover:bg-rose-400"
+                            : "bg-arcane-400/60 group-hover:bg-arcane-300"
                         : "bg-white/10"
                     )}
                   />
