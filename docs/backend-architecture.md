@@ -20,23 +20,9 @@ Because the `agent-workflow` evaluates both the player and the wizard in a singl
 - **`leaderboard`** — `GET` → `{ leaderboard[] }`. Top human (side-A) scores with their topic.
 - **`health`** — `GET` → `{ ok, service, time, config{gateway,db,youcom} }`. Liveness + secret-presence (booleans only).
 
-## Realtime: how the UI stays live
+## Realtime & State
 
-We do **not** publish from the edge functions. Instead, clients subscribe to **InsForge realtime database-change events** on this room's rows. Every persisted claim / score update is pushed automatically.
-
-Frontend pattern (Socket.IO):
-
-```js
-import { io } from "socket.io-client";
-const socket = io(INSFORGE_URL, { auth: { token: ANON_KEY } });
-
-// one logical channel per room
-socket.emit("realtime:subscribe", { channel: `room:${roomId}` });
-
-// react to new claims (verdicts) and score changes
-socket.on("claims:insert", (msg) => renderVerdict(msg.payload));
-socket.on("players:update", (msg) => updateScore(msg.payload));
-```
+The new pixel-art frontend does **not** use WebSocket or Realtime subscriptions. Instead, it relies directly on the HTTP responses from the edge functions. Because `submit-argument` now processes the entire round in a single blocking call, the frontend simply awaits that response to get the player verdict, wizard rebuttal, and updated scores simultaneously.
 
 ## Full game loop (sequence)
 
@@ -45,7 +31,7 @@ create-room (topic, sides)            -> room_id, players
 loop rounds 1..N:
   player types argument
     -> submit-argument(room_id, round, argument)   [runs agent-workflow -> persists both claims -> updates scores]
-    -> realtime pushes the new claims + scores
+    -> returns player_claim, wizard_claim, scores
 get-room(room_id)                      -> final scores, winner, full citation trail (recap)
 ```
 
@@ -56,15 +42,12 @@ get-room(room_id)                      -> final scores, winner, full citation tr
 - **Round bounds** — `round_no > rounds_total` returns `400`.
 - **Idempotent scoring** — scores are *recomputed* as the sum of that player/wizard's `claims.points` on every turn, never incremented in place. Safe under retries/races and self-healing.
 
-## Typed client
+## JavaScript API Client
 
-Frontend imports `backend/client/` instead of hand-rolling fetches:
+The frontend uses a vanilla JavaScript client located in `frontend/js/api.js`. It wraps all edge functions and uses a static `window.Api` global. It does not use TypeScript or generated types.
 
-```ts
-import { createDebateClient } from "../backend/client";
-const api = createDebateClient(process.env.NEXT_PUBLIC_INSFORGE_URL!);
-const { room } = await api.createRoom({ topic_id: "nuclear-climate" });
-const turn = await api.submitArgument({ room_id: room.id, round_no: 1, argument });
+```js
+// Usage from the frontend:
+const data = await Api.createRoom({ topic: "Nuclear energy", difficulty: "adept" });
+const result = await Api.submitArgument(roomId, roundNo, argument);
 ```
-
-All request/response types live in `backend/client/types.ts` and mirror the contracts above.

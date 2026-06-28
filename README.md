@@ -1,13 +1,13 @@
 # Debate the Wizard
 
-A live debate game. You pick a side, an AI wizard argues the other. Every claim either
+A live pixel-art debate game. You pick a side, an AI wizard argues the other. Every claim either
 side makes is grounded in fresh **You.com** search results with citations shown on
 screen, and a **Judge** model fact-checks each claim against those sources. Survive
 fact-checking and score points. Get caught making an unsupported claim and lose the round.
 
 Search isn't decoration here, it's the win condition: no search means no grounding, no
 grounding means no scoring, no scoring means no game. The whole backend (Postgres, edge
-functions, realtime, model gateway, deploy) runs on **InsForge**.
+functions, model gateway, deploy) runs on **InsForge**.
 
 ## How it plays
 
@@ -16,97 +16,63 @@ through the *same* search + judge pipeline, so the wizard can get fact-checked a
 too:
 
 ```
-1. Room created -> topic chosen -> player takes SIDE A, wizard takes SIDE B.
-2. Player submits an argument -> Judge extracts the key claim
-   -> You.com search on that claim -> Judge rules:
-        supported   -> +points, green + citation
-        unsupported -> +0, "no source found"
-        misleading  -> penalty, red + the contradicting source
-3. Wizard turn: same pipeline, grounded rebuttal, same Judge (it can lose too).
-4. Repeat for N rounds -> tally -> reveal winner with the full citation trail.
+1. Room created -> topic chosen -> player takes FOR, wizard takes AGAINST.
+2. Player submits an argument -> A single submit-argument API call handles the full turn:
+   - Judge extracts the player's key claim, searches You.com, and scores it.
+   - Debater Agent synthesizes a rebuttal for the wizard, avoiding past claims.
+   - Judge scores the wizard's rebuttal.
+   - Both claims and their scores are saved to Postgres.
+3. The response returns both the player and wizard's verdicts simultaneously.
+4. The frontend animates the spell combat based on the verdicts (supported/unsupported/misleading).
+5. Repeat for N rounds -> tally -> reveal winner with the full citation trail.
 ```
 
 ## Architecture
 
 | Component | Built on | Job |
 |---|---|---|
-| Frontend | React + Vite + Tailwind | Side picker, live arena, citation panel, verdict reveal |
-| Realtime sync | InsForge Realtime (pub/sub) | One channel per room; pushes round state, verdicts, scores |
-| Game logic | InsForge Edge Functions (Deno) | `/judge-claim`, `/wizard-turn` |
-| Wizard + Judge | InsForge Model Gateway -> Claude | Argues a side / extracts + rules on each claim |
+| Frontend | Vanilla JS, HTML, CSS | Pixel Game Boy UI, spell combat animations, citation side-panel |
+| Game logic | InsForge Edge Functions (Deno) | `/submit-argument`, `/create-room`, `/record-match` |
+| AI Workflow | TypeScript (`agent-workflow`) | Orchestrates Claim Extraction, Research, Fact Checking, Fallacy Detection, Debating, and Judging |
+| Model Gateway | InsForge Model Gateway -> Claude | Powers all the AI sub-agents in the workflow |
 | Grounding | You.com Search API | Real-time, citation-backed snippets — arms the wizard *and* verifies every claim |
 | Persistence | InsForge Postgres | rooms, players, claims, citations |
-| Secrets | InsForge Secret Manager | Holds the You.com key server-side |
-
-## Team & branches
-
-Three parallel tracks (see [docs/backend-architecture.md](docs/backend-architecture.md) for the contracts):
-
-| Track | Owns |
-|---|---|
-| **Frontend** | Next.js arena, side picker, citation panel, scorecard, verdict reveal |
-| **Agent pipeline** | `judge-claim` (done) + `wizard-turn` — pure search+Claude functions |
-| **The rest** (`Eric` branch) | rooms/sessions, persistence, scoring, realtime fan-out, leaderboard, health, seed topics |
+| Secrets | InsForge Secret Manager | Holds the You.com and InsForge keys |
 
 ## Status
 
-- [x] Database schema — `migrations/20260628120000_init.sql`
-- [x] `/judge-claim` edge function — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
-- [x] Multi-dimension scorecard per claim (factual accuracy / logic / evidence / persuasiveness) + fallacy detection, all in the single judge call
-- [x] curl smoke test — `scripts/test-judge.sh`
+- [x] Database schema — `backend/migrations/`
+- [x] `submit-argument` edge function — single-pass orchestration for the entire debate turn
 - [x] Evidence-grounded agent workflow — Claim + Research, Fact Check, Fallacy Detection, Debater, Judge
-- [ ] `/wizard-turn`
-- [ ] Realtime channel + score broadcast
-- [ ] Postgres persistence in the functions
-- [ ] React arena frontend
-- [x] `judge-claim` — You.com search + Claude judge (one call), strict JSON, graceful fallbacks
-- [x] Multi-dimension scorecard + fallacy detection in the single judge call
-- [x] **Orchestration/infra**: `create-room`, `submit-argument`, `advance-wizard`, `get-room`, `leaderboard`, `health`
-- [x] Persistence (claims/citations/scores) + realtime via DB-change subscriptions
-- [x] Integrity guards: one-turn-per-round, finished-room lock, round bounds, idempotent recomputed scoring, input caps
-- [x] Typed client for the frontend — `client/`
-- [x] Demo seed topics with built-in factual traps — `seed/topics.json`
-- [ ] `wizard-turn` (agent-pipeline track)
-- [ ] React arena frontend (frontend track)
+- [x] Postgres persistence in the functions (claims/citations/scores)
+- [x] Pixel art frontend (Vanilla JS) integrated with the backend
+- [x] Integrity guards: one-turn-per-round, finished-room lock, round bounds, idempotent recomputed scoring
+- [x] Demo seed topics with built-in factual traps
+- [x] `agent-workflow` stateful history integration
 
 ## Repo layout
 
 ```
-migrations/                 Postgres schema (InsForge CLI migrations)
-functions/judge-claim/      The core search + judge edge function
-agent-workflow/             Local TypeScript multi-agent debate workflow
-docs/agent-workflow.md      Agent workflow diagram, responsibilities, and contracts
-scripts/test-judge.sh       curl smoke test for the deployed function
-scripts/test-agent-workflow.sh local smoke test for the agent workflow
-SETUP.md                    Init -> deploy -> test, step by step
-.env.example                Secrets the function expects
+backend/migrations/            Postgres schema (InsForge CLI migrations)
+backend/functions/             InsForge Edge Functions (create-room, submit-argument, etc)
+backend/agent-workflow/        Local TypeScript multi-agent debate workflow
+frontend/                      The Pixel Game Boy vanilla JS static frontend
+docs/agent-workflow.md         Agent workflow diagram, responsibilities, and contracts
+docs/backend-architecture.md   Backend edge function contracts and API specs
+SETUP.md                       Init -> deploy -> test, step by step
 ```
 
 See **[docs/agent-workflow.md](docs/agent-workflow.md)** for the evidence-grounded
 agent workflow, including the Mermaid diagram and data contracts.
-
-## `judge-claim` response contract
-
-`POST /functions/judge-claim` with `{ "argument": "...", "topic": "..." }` returns:
-
-```json
-{
-  "key_claim": "the single testable claim the Judge extracted",
-  "verdict": "supported | unsupported | misleading",
-  "rationale": "<= 20 words",
-  "points": 10,
-  "scores": { "factual_accuracy": 8, "logic": 7, "evidence": 9, "persuasiveness": 6 },
-  "fallacies": [],
-  "citations": [{ "title": "...", "url": "...", "snippet": "..." }],
-  "citation_index": 0
-}
-```
-
-`points` (the game score) comes from `verdict`: supported +10, unsupported 0, misleading −5.
-`scores` and `fallacies` drive the on-screen scorecard and tiebreaks. `citation_index`
-points at the snippet the Judge relied on (or `null`).
+See **[docs/backend-architecture.md](docs/backend-architecture.md)** for how the edge functions coordinate the game loop.
 
 ## Getting started
 
-See **[SETUP.md](SETUP.md)** — InsForge login, schema, secrets, deploy, and the
-curl test that proves the core loop works.
+To run the frontend locally:
+```bash
+cd frontend
+npx serve . -p 3000
+```
+Open `http://localhost:3000` to play.
+
+See **[SETUP.md](SETUP.md)** — InsForge login, schema, secrets, and deployment instructions for the backend.
