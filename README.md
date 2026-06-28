@@ -55,6 +55,8 @@ Three parallel tracks (see [docs/backend-architecture.md](docs/backend-architect
 - [x] Multi-dimension scorecard + fallacy detection in the single judge call
 - [x] **Orchestration/infra**: `create-room`, `submit-argument`, `advance-wizard`, `get-room`, `leaderboard`, `health`
 - [x] Persistence (claims/citations/scores) + realtime via DB-change subscriptions
+- [x] Integrity guards: one-turn-per-round, finished-room lock, round bounds, idempotent recomputed scoring, input caps
+- [x] Typed client for the frontend — `client/`
 - [x] Demo seed topics with built-in factual traps — `seed/topics.json`
 - [ ] `wizard-turn` (agent-pipeline track)
 - [ ] React arena frontend (frontend track)

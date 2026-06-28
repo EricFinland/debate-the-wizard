@@ -19,9 +19,23 @@ const CORS = {
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
 
 const BASE = (Deno.env.get("INSFORGE_API_URL") ?? "").replace(/\/+$/, "");
+const DATA = (Deno.env.get("INSFORGE_DATA_URL") ?? BASE).replace(/\/+$/, "");
 const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${BASE}/api/database/records`;
+const DB = `${DATA}/api/database/records`;
 const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+const MAX_ARG = 4000; // guard against oversized payloads / prompt abuse
+
+/** Recompute a player's running total from the source of truth (their claims). Idempotent. */
+async function recomputeScore(room_id: string, side: "A" | "B", author: "player" | "wizard"): Promise<number> {
+  const claims = await dbSelect("claims", `room_id=eq.${room_id}&author=eq.${author}&select=points`);
+  const total = claims.reduce((s, c) => s + (Number(c.points) || 0), 0);
+  const [player] = await dbSelect("players", `room_id=eq.${room_id}&side=eq.${side}&select=id`);
+  if (player) {
+    const [updated] = await dbUpdate("players", `id=eq.${player.id}`, { score: total });
+    return updated?.score ?? total;
+  }
+  return total;
+}
 
 async function dbSelect(table: string, query = ""): Promise<any[]> {
   const res = await fetch(`${DB}/${table}${query ? `?${query}` : ""}`, { headers: H });
@@ -59,11 +73,18 @@ export default async function (req: Request): Promise<Response> {
   const round_no = Number(body.round_no);
   if (!room_id) return json({ error: "'room_id' is required." }, 400);
   if (!argument) return json({ error: "'argument' is required." }, 400);
+  if (argument.length > MAX_ARG) return json({ error: `'argument' too long (max ${MAX_ARG} chars).` }, 400);
   if (!Number.isFinite(round_no) || round_no < 1) return json({ error: "'round_no' must be >= 1." }, 400);
 
   try {
     const [room] = await dbSelect("rooms", `id=eq.${room_id}&select=id,topic,status,rounds_total`);
     if (!room) return json({ error: "Room not found." }, 404);
+    if (room.status === "finished") return json({ error: "This match is already finished." }, 409);
+    if (round_no > room.rounds_total) return json({ error: `round_no exceeds rounds_total (${room.rounds_total}).` }, 400);
+
+    // one argument per player per round
+    const dupe = await dbSelect("claims", `room_id=eq.${room_id}&round_no=eq.${round_no}&author=eq.player&select=id`);
+    if (dupe.length) return json({ error: "You already argued this round." }, 409);
 
     const ruling = await runJudge(argument, room.topic);
 
@@ -85,13 +106,8 @@ export default async function (req: Request): Promise<Response> {
       ? await dbInsert("citations", cites.map((c) => ({ claim_id: claim.id, title: c.title ?? null, url: c.url ?? null, snippet: c.snippet ?? null })))
       : [];
 
-    // bump the human player's (side A) score
-    const [player] = await dbSelect("players", `room_id=eq.${room_id}&side=eq.A&select=id,score`);
-    let score = player?.score ?? 0;
-    if (player) {
-      const [updated] = await dbUpdate("players", `id=eq.${player.id}`, { score: score + (ruling.points ?? 0) });
-      score = updated?.score ?? score;
-    }
+    // recompute the human player's (side A) total from their claims — idempotent
+    const score = await recomputeScore(room_id, "A", "player");
 
     return json({ claim, citations: inserted, score, citation_index: ruling.citation_index ?? null });
   } catch (err) {

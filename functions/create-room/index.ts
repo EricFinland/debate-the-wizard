@@ -31,8 +31,9 @@ const CORS = {
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
 
 const BASE = (Deno.env.get("INSFORGE_API_URL") ?? "").replace(/\/+$/, "");
+const DATA = (Deno.env.get("INSFORGE_DATA_URL") ?? BASE).replace(/\/+$/, ""); // records API may live on a different host
 const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${BASE}/api/database/records`;
+const DB = `${DATA}/api/database/records`;
 const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
 
 async function dbInsert(table: string, rows: unknown[]): Promise<any[]> {

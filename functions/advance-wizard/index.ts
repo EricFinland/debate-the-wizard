@@ -25,9 +25,22 @@ const CORS = {
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: CORS });
 
 const BASE = (Deno.env.get("INSFORGE_API_URL") ?? "").replace(/\/+$/, "");
+const DATA = (Deno.env.get("INSFORGE_DATA_URL") ?? BASE).replace(/\/+$/, "");
 const KEY = Deno.env.get("INSFORGE_API_KEY") ?? "";
-const DB = `${BASE}/api/database/records`;
+const DB = `${DATA}/api/database/records`;
 const H = { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+
+/** Recompute a player's running total from the source of truth (their claims). Idempotent. */
+async function recomputeScore(room_id: string, side: "A" | "B", author: "player" | "wizard"): Promise<number> {
+  const claims = await dbSelect("claims", `room_id=eq.${room_id}&author=eq.${author}&select=points`);
+  const total = claims.reduce((s, c) => s + (Number(c.points) || 0), 0);
+  const [player] = await dbSelect("players", `room_id=eq.${room_id}&side=eq.${side}&select=id`);
+  if (player) {
+    const [updated] = await dbUpdate("players", `id=eq.${player.id}`, { score: total });
+    return updated?.score ?? total;
+  }
+  return total;
+}
 
 async function dbSelect(table: string, query = ""): Promise<any[]> {
   const res = await fetch(`${DB}/${table}${query ? `?${query}` : ""}`, { headers: H });
@@ -66,6 +79,12 @@ export default async function (req: Request): Promise<Response> {
   try {
     const [room] = await dbSelect("rooms", `id=eq.${room_id}&select=id,topic,status,rounds_total`);
     if (!room) return json({ error: "Room not found." }, 404);
+    if (room.status === "finished") return json({ error: "This match is already finished." }, 409);
+    if (round_no > room.rounds_total) return json({ error: `round_no exceeds rounds_total (${room.rounds_total}).` }, 400);
+
+    // the wizard argues once per round
+    const dupe = await dbSelect("claims", `room_id=eq.${room_id}&round_no=eq.${round_no}&author=eq.wizard&select=id`);
+    if (dupe.length) return json({ error: "The wizard already argued this round." }, 409);
 
     // 1. ask the wizard (agent-pipeline track) for a grounded rebuttal
     let wiz: any;
@@ -108,13 +127,8 @@ export default async function (req: Request): Promise<Response> {
       ? await dbInsert("citations", cites.map((c) => ({ claim_id: claim.id, title: c.title ?? null, url: c.url ?? null, snippet: c.snippet ?? null })))
       : [];
 
-    // 4. bump the wizard player's (side B) score
-    const [player] = await dbSelect("players", `room_id=eq.${room_id}&side=eq.B&select=id,score`);
-    let score = player?.score ?? 0;
-    if (player) {
-      const [updated] = await dbUpdate("players", `id=eq.${player.id}`, { score: score + (judged.points ?? 0) });
-      score = updated?.score ?? score;
-    }
+    // 4. recompute the wizard player's (side B) total from its claims — idempotent
+    const score = await recomputeScore(room_id, "B", "wizard");
 
     // 5. close the match after the wizard finishes the final round
     let roomOut = room;

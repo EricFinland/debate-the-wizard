@@ -90,7 +90,36 @@ loop rounds 1..N:
 get-room(room_id)                      -> final scores, winner, full citation trail (recap)
 ```
 
+## Integrity guards (orchestration functions)
+
+- **One turn per side per round** — duplicate `submit-argument` / `advance-wizard`
+  for the same `(room_id, round_no)` returns `409`. No double-scoring.
+- **Finished rooms are read-only** — turns on a `finished` room return `409`.
+- **Round bounds** — `round_no > rounds_total` returns `400`.
+- **Idempotent scoring** — `players.score` is *recomputed* as the sum of that
+  player's `claims.points` on every turn, never incremented in place. Safe under
+  retries/races and self-healing if a row is edited.
+- **Input cap** — `argument` over 4000 chars returns `400`.
+
+## Typed client
+
+Frontend imports `client/` instead of hand-rolling fetches:
+
+```ts
+import { createDebateClient } from "../client";
+const api = createDebateClient(process.env.NEXT_PUBLIC_INSFORGE_URL!);
+const { room } = await api.createRoom({ topic_id: "nuclear-climate" });
+const turn = await api.submitArgument({ room_id: room.id, round_no: 1, argument });
+```
+
+All request/response types live in `client/types.ts` and mirror the contracts above.
+
 ## Env / secrets every function reads
 
-`INSFORGE_API_URL` (project base URL), `INSFORGE_API_KEY` (gateway + data API bearer),
-`YOUCOM_API_KEY` (judge/wizard only). See `SETUP.md`.
+- `INSFORGE_API_URL` — project base (model gateway + functions host)
+- `INSFORGE_API_KEY` — bearer for the gateway + data API
+- `INSFORGE_DATA_URL` — *optional*; only if the records API is on a different host
+  than the gateway (defaults to `INSFORGE_API_URL`)
+- `YOUCOM_API_KEY` — judge/wizard only
+
+See `SETUP.md`.
