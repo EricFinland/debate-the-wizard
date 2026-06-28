@@ -1,0 +1,296 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+ * Performance: drop expensive GPU effects globally for a fast, simple UI.
+ * backdrop-filter (glass blur) was on ~every panel and is the biggest cost on
+ * continuous repaints. Killing it keeps the translucent panel colors but stops
+ * the per-frame backdrop recompositing.
+ * ------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:root {
+  --font-display: "Cinzel", Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+
+  --arena-950: #0a0612;
+  --arena-900: #120a22;
+  --arena-800: #1f1138;
+
+  --rune: #f4c95d;
+  --arcane: #a855f7;
+  --supported: #34d399;
+  --misleading: #fb7185;
+  --unsupported: #a1a1aa;
+  --pending: #c4b5fd;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-arena-950 text-zinc-100 antialiased;
+    background-image:
+      radial-gradient(1200px 800px at 50% -10%, rgba(109, 40, 217, 0.30), transparent 60%),
+      radial-gradient(900px 600px at 90% 110%, rgba(244, 201, 93, 0.08), transparent 55%),
+      linear-gradient(180deg, #0a0612 0%, #120a22 100%);
+    background-attachment: fixed;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+
+  ::selection {
+    background: rgba(168, 85, 247, 0.35);
+    color: #fff;
+  }
+}
+
+@layer utilities {
+  /* Rune-gold / arcane-violet glow text */
+  .text-glow-rune {
+    text-shadow: 0 0 18px rgba(244, 201, 93, 0.55);
+  }
+  .text-glow-arcane {
+    text-shadow: 0 0 18px rgba(168, 85, 247, 0.6);
+  }
+
+  .glass {
+    @apply bg-white/[0.035] backdrop-blur-md border border-white/10;
+  }
+
+  .glass-rune {
+    background: linear-gradient(135deg, rgba(244, 201, 93, 0.10), rgba(244, 201, 93, 0.02));
+    @apply backdrop-blur-md border border-rune/25;
+  }
+
+  .glass-arcane {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(168, 85, 247, 0.03));
+    @apply backdrop-blur-md border border-arcane/30;
+  }
+
+  /* Animated gradient text for the title */
+  .text-arcane-shimmer {
+    background: linear-gradient(90deg, #f4c95d, #a855f7, #b98bff, #f4c95d);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+
+  .rune-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(244, 201, 93, 0.5),
+      rgba(168, 85, 247, 0.5),
+      transparent
+    );
+  }
+
+  /* ----------------------------------------------------------------------
+     MOTION SYSTEM — CSS keyframe utilities (the SAFE half of lib/motion.ts).
+     Use these classes for ALL looping / decorative / idle / entrance motion.
+     They are pure CSS (no WAAPI / framer-motion) so infinite loops are safe.
+
+       LOOPING / IDLE / DECORATIVE  ->  use these:
+         .anim-float        gentle vertical bob (icons, sigils, the wizard)
+         .anim-pulse-glow   breathing opacity glow (auras, "live" badges)
+         .anim-shimmer      sweeping highlight (skeletons, gold seams)
+         .anim-sparkle      twinkling particles (rune motes, victory dust)
+
+       ONE-SHOT ENTRANCE (play once on mount)  ->  use these:
+         .anim-fade-in-up   content rising into place (cards, rows, panels)
+         .anim-fade-in      simple opacity fade
+         .anim-scale-in     subtle pop-in (badges, avatars)
+
+     For OVERLAY / MODAL mount+unmount and the VERDICT REVEAL, do NOT use CSS —
+     use the framer-motion presets exported from "@/lib/motion" (AnimatePresence),
+     because those need to animate on the way OUT too.
+     ---------------------------------------------------------------------- */
+
+  /* Looping / decorative */
+  .anim-float {
+    animation: float 5s ease-in-out infinite;
+  }
+  .anim-pulse-glow {
+    animation: pulse-glow 2.4s ease-in-out infinite;
+  }
+  .anim-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      rgba(255, 255, 255, 0.16) 50%,
+      rgba(255, 255, 255, 0.08) 55%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 2.2s linear infinite;
+  }
+  .anim-sparkle {
+    animation: sparkle 2.8s ease-in-out infinite;
+  }
+
+  /* One-shot entrance (play once). `both` keeps the start state before the delay
+     and the end state after, so staggered children never flash. */
+  .anim-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+  }
+  .anim-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+  .anim-scale-in {
+    animation: scale-in 0.4s ease-out both;
+  }
+
+  /* Stagger helpers — add alongside a one-shot class for cascading reveals.
+     e.g. <li class="anim-fade-in-up anim-delay-100"> */
+  .anim-delay-75 {
+    animation-delay: 75ms;
+  }
+  .anim-delay-100 {
+    animation-delay: 100ms;
+  }
+  .anim-delay-150 {
+    animation-delay: 150ms;
+  }
+  .anim-delay-200 {
+    animation-delay: 200ms;
+  }
+  .anim-delay-300 {
+    animation-delay: 300ms;
+  }
+  .anim-delay-500 {
+    animation-delay: 500ms;
+  }
+}
+
+/* Keyframes live at top level so the .anim-* utilities work even when a class
+   is applied conditionally / outside Tailwind's JIT scan. Names match
+   tailwind.config.ts so `animate-*` and `.anim-*` stay interchangeable. */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Respect users who ask for less motion: kill loops, keep content visible. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-float,
+  .anim-pulse-glow,
+  .anim-shimmer,
+  .anim-sparkle,
+  .anim-fade-in-up,
+  .anim-fade-in,
+  .anim-scale-in,
+  .text-arcane-shimmer {
+    animation: none !important;
+  }
+}
+
+/* Custom scrollbar — arcane themed */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.5) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.55), rgba(109, 40, 217, 0.55));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.85), rgba(109, 40, 217, 0.85));
+  background-clip: content-box;
+}

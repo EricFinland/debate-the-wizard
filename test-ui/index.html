@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Debate the Wizard — test harness</title>
+<style>
+  :root { --bg:#0f1020; --panel:#1a1b35; --line:#2c2d52; --ink:#e7e7f5; --mut:#9a9ac4; --gold:#e9c46a; --violet:#a06bff;
+          --ok:#34d399; --bad:#fb7185; --meh:#a1a1aa; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; }
+  header { padding:14px 18px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:#13142a; position:sticky; top:0; }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  input, select, textarea, button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  input, textarea { width:100%; }
+  button { cursor:pointer; background:#26284f; }
+  button:hover { background:#32356a; }
+  button.primary { background:var(--violet); color:#120a25; font-weight:600; border-color:var(--violet); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  main { display:grid; grid-template-columns: 360px 1fr; gap:16px; padding:16px; align-items:start; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin:0 0 10px; }
+  .row { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .row > * { flex:1; }
+  .grow { flex:3; } .shrink { flex:0 0 auto; }
+  label { font-size:12px; color:var(--mut); display:block; margin:8px 0 3px; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; }
+  .supported { background:rgba(52,211,153,.15); color:var(--ok); border:1px solid var(--ok); }
+  .misleading { background:rgba(251,113,133,.15); color:var(--bad); border:1px solid var(--bad); }
+  .unsupported { background:rgba(161,161,170,.15); color:var(--meh); border:1px solid var(--meh); }
+  .claim { border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .claim.player { border-left:3px solid var(--gold); }
+  .claim.wizard { border-left:3px solid var(--violet); }
+  .who { font-weight:700; } .who.player { color:var(--gold); } .who.wizard { color:var(--violet); }
+  .key { background:#0d0e1f; border:1px dashed var(--line); border-radius:6px; padding:6px 8px; margin:6px 0; font-style:italic; }
+  .bars { margin:8px 0; } .bar { display:flex; align-items:center; gap:8px; margin:3px 0; font-size:12px; }
+  .bar .name { width:120px; color:var(--mut); } .bar .track { flex:1; height:8px; background:#0d0e1f; border-radius:4px; overflow:hidden; }
+  .bar .fill { height:100%; background:linear-gradient(90deg,var(--violet),var(--gold)); }
+  .chips span { display:inline-block; background:rgba(251,113,133,.12); color:var(--bad); border:1px solid var(--bad); border-radius:999px; padding:1px 8px; font-size:11px; margin:2px 4px 0 0; }
+  .cite { font-size:12px; border-top:1px solid var(--line); padding-top:6px; margin-top:6px; }
+  .cite a { color:var(--gold); } .cite .snip { color:var(--mut); }
+  .score { font-size:26px; font-weight:800; } .score.gold{color:var(--gold);} .score.violet{color:var(--violet);}
+  .muted { color:var(--mut); } .err { color:var(--bad); white-space:pre-wrap; }
+  pre { background:#0d0e1f; border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; max-height:320px; font-size:12px; }
+  .topiccard { text-align:left; line-height:1.3; }
+  .topiccard small { color:var(--mut); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧙 Debate the Wizard <span class="muted">test harness</span></h1>
+  <input id="base" class="grow" placeholder="https://YOUR-PROJECT.insforge.dev" style="min-width:280px" />
+  <button class="shrink" onclick="saveBase()">Save URL</button>
+  <button class="shrink" onclick="health()">Health</button>
+  <span id="healthState" class="muted shrink"></span>
+</header>
+
+<main>
+  <!-- left: setup + actions -->
+  <div>
+    <div class="panel" id="setupPanel">
+      <h2>New duel</h2>
+      <label>Seed topic (recommended for demo)</label>
+      <select id="topicId">
+        <option value="nuclear-climate">nuclear-climate (has a factual trap)</option>
+        <option value="cars-transit">cars-transit</option>
+        <option value="">— custom topic —</option>
+      </select>
+      <label>Custom topic (only if "custom" selected)</label>
+      <input id="customTopic" placeholder="Some debatable statement..." />
+      <div class="row">
+        <div><label>Rounds</label><select id="rounds"><option>3</option><option selected>5</option><option>7</option></select></div>
+        <div style="align-self:end"><button class="primary" style="width:100%" onclick="createRoom()">Begin duel</button></div>
+      </div>
+      <div id="roomInfo" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel" id="turnPanel" style="margin-top:14px; display:none">
+      <h2>Your turn — round <span id="roundLbl">1</span></h2>
+      <textarea id="argument" rows="5" maxlength="4000" placeholder="Argue FOR the topic. Make a factual claim..."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="primary grow" onclick="submitArg()">Submit argument</button>
+        <button class="grow" onclick="advanceWizard()">🧙 Wizard's turn</button>
+      </div>
+      <div class="row">
+        <button onclick="loadRoom()">Refresh state</button>
+        <button onclick="nextRound()">Next round →</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h2>Scores</h2>
+      <div class="row">
+        <div>You<br><span id="scoreA" class="score gold">0</span></div>
+        <div>Wizard<br><span id="scoreB" class="score violet">0</span></div>
+        <div>Round<br><span id="roundState" class="score">–</span></div>
+      </div>
+      <div id="winner" style="margin-top:6px"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <h2>Leaderboard</h2>
+      <button onclick="leaderboard()">Load leaderboard</button>
+      <div id="lb" class="muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- right: claims feed + raw -->
+  <div>
+    <div class="panel">
+      <h2>Debate feed</h2>
+      <div id="err" class="err"></div>
+      <div id="feed" class="muted">No claims yet. Create a room and submit an argument.</div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <h2>Last raw response</h2>
+      <pre id="raw">—</pre>
+    </div>
+  </div>
+</main>
+
+<script>
+let BASE = localStorage.getItem('dtw_base') || '';
+let ROOM = null;       // room object
+let ROUND = 1;
+const $ = (id) => document.getElementById(id);
+$('base').value = BASE;
+
+function saveBase(){ BASE = $('base').value.trim().replace(/\/+$/,''); localStorage.setItem('dtw_base', BASE); flash('Saved.'); }
+function flash(m){ $('healthState').textContent = m; }
+function showErr(e){ $('err').textContent = e ? ('Error: ' + e) : ''; }
+function fn(slug){ if(!BASE){ throw new Error('Set your InsForge URL first.'); } return BASE + '/functions/' + slug; }
+
+async function call(slug, method, body){
+  showErr('');
+  const res = await fetch(fn(slug), { method, headers:{'Content-Type':'application/json'}, body: body?JSON.stringify(body):undefined });
+  const text = await res.text(); let data; try{ data = text?JSON.parse(text):{}; }catch{ data = {error:text}; }
+  $('raw').textContent = JSON.stringify(data, null, 2);
+  if(!res.ok){ const m = (data&&data.error)||('HTTP '+res.status); showErr(m); throw new Error(m); }
+  return data;
+}
+
+async function health(){
+  try{ const d = await call('health','GET'); flash(d.ok? ('OK · gateway:'+d.config.gateway+' db:'+d.config.db+' youcom:'+d.config.youcom) : 'not ok'); }
+  catch(e){ flash('✗ '+e.message); }
+}
+
+async function createRoom(){
+  try{
+    const topic_id = $('topicId').value;
+    const body = { rounds_total: Number($('rounds').value) };
+    if(topic_id) body.topic_id = topic_id; else body.topic = $('customTopic').value.trim();
+    const d = await call('create-room','POST', body);
+    ROOM = d.room; ROUND = 1;
+    $('roomInfo').innerHTML = 'Room <code>'+ROOM.id+'</code><br>Topic: '+escapeHtml(ROOM.topic);
+    $('turnPanel').style.display='block'; $('roundLbl').textContent = ROUND;
+    $('feed').innerHTML = '<span class="muted">Room created. Make your argument.</span>';
+    await loadRoom();
+  }catch(e){}
+}
+
+async function submitArg(){
+  if(!ROOM) return showErr('Create a room first.');
+  const argument = $('argument').value.trim();
+  if(!argument) return showErr('Type an argument.');
+  try{
+    await call('submit-argument','POST',{ room_id:ROOM.id, round_no:ROUND, argument });
+    $('argument').value='';
+    await loadRoom();
+  }catch(e){}
+}
+
+async function advanceWizard(){
+  if(!ROOM) return showErr('Create a room first.');
+  try{
+    const d = await call('advance-wizard','POST',{ room_id:ROOM.id, round_no:ROUND });
+    if(d.room) ROOM = d.room;
+    await loadRoom();
+  }catch(e){}
+}
+
+function nextRound(){ ROUND++; $('roundLbl').textContent = ROUND; flash('Round '+ROUND); }
+
+async function loadRoom(){
+  if(!ROOM) return;
+  try{
+    const d = await call('get-room','POST',{ room_id:ROOM.id });
+    ROOM = d.room;
+    $('scoreA').textContent = d.scores.A; $('scoreB').textContent = d.scores.B;
+    $('roundState').textContent = ROUND + ' / ' + ROOM.rounds_total;
+    $('winner').innerHTML = ROOM.status==='finished'
+      ? '<b>Match finished — winner: '+(d.winner==='A'?'YOU':d.winner==='B'?'THE WIZARD':'TIE')+'</b>' : '';
+    renderFeed(d.claims||[]);
+  }catch(e){}
+}
+
+function renderFeed(claims){
+  if(!claims.length){ $('feed').innerHTML='<span class="muted">No claims yet.</span>'; return; }
+  $('feed').innerHTML = claims.map(c => {
+    const who = c.author==='wizard' ? 'wizard' : 'player';
+    const v = c.verdict || 'unsupported';
+    const bars = c.scores ? '<div class="bars">'+['factual_accuracy','logic','evidence','persuasiveness'].map(k=>
+      '<div class="bar"><span class="name">'+k.replace('_',' ')+'</span><span class="track"><span class="fill" style="width:'+((c.scores[k]||0)*10)+'%"></span></span><span>'+(c.scores[k]??0)+'</span></div>').join('')+'</div>' : '';
+    const chips = (c.fallacies&&c.fallacies.length) ? '<div class="chips">'+c.fallacies.map(f=>'<span>'+escapeHtml(f)+'</span>').join('')+'</div>' : '';
+    const cites = (c.citations&&c.citations.length) ? c.citations.map(ci=>
+      '<div class="cite"><a href="'+escapeAttr(ci.url||'#')+'" target="_blank" rel="noopener">'+escapeHtml(ci.title||ci.url||'source')+'</a><div class="snip">'+escapeHtml(ci.snippet||'')+'</div></div>').join('') : '<div class="cite muted">no citations</div>';
+    return '<div class="claim '+who+'">'
+      + '<div class="row"><span class="who '+who+'">'+(who==='wizard'?'🧙 The Wizard':'🧑 You')+' · R'+c.round_no+'</span>'
+      + '<span class="shrink"><span class="pill '+v+'">'+v+' ('+(c.points>0?'+':'')+c.points+')</span></span></div>'
+      + '<div>'+escapeHtml(c.argument||'')+'</div>'
+      + (c.key_claim?'<div class="key">key claim: '+escapeHtml(c.key_claim)+'</div>':'')
+      + (c.rationale?'<div class="muted">⚖ '+escapeHtml(c.rationale)+'</div>':'')
+      + bars + chips + cites + '</div>';
+  }).join('');
+}
+
+async function leaderboard(){
+  try{ const d = await call('leaderboard','GET');
+    $('lb').innerHTML = (d.leaderboard&&d.leaderboard.length)
+      ? d.leaderboard.map((e,i)=>(i+1)+'. <b>'+e.score+'</b> — '+escapeHtml(e.topic||'(topic)')).join('<br>')
+      : '<span class="muted">empty</span>';
+  }catch(e){}
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

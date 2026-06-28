@@ -1,4 +1,49 @@
-.rocketride/
-.claude/
-.cursor/
-docs/superpowers/
+# deps
+node_modules/
+.pnp/
+
+# env / secrets
+.env
+.env.local
+*.local
+
+# insforge link / local state
+.insforge/
+insforge.json.local
+
+# build
+dist/
+build/
+.vercel/
+.next/
+out/
+next-env.d.ts
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf
+.gstack/
+
+# build artifacts
+*.tsbuildinfo
