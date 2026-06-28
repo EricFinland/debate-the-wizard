@@ -31,7 +31,6 @@ const DIFFICULTIES: readonly Difficulty[] = ["novice", "adept", "archmage"] as c
 const normalizeDifficulty = (d: unknown): Difficulty =>
   DIFFICULTIES.includes(String(d).toLowerCase() as Difficulty) ? (String(d).toLowerCase() as Difficulty) : "adept";
 const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
-const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 
 // Fall back to the known project URL if INSFORGE_API_URL is not in the deployment env.
@@ -84,13 +83,6 @@ async function searchYouCom(query: string): Promise<Citation[]> {
   }
   return out;
 }
-async function extractSearchQuery(argument: string, topic: string): Promise<string> {
-  const sys = "You turn a debate argument into ONE concise web-search query (max 12 words) targeting its single most important factual claim. Reply with ONLY the query text, no quotes.";
-  try {
-    const q = (await chat(EXTRACT_MODEL, [{ role: "system", content: sys }, { role: "user", content: `TOPIC: ${topic || "(unspecified)"}\nARGUMENT: ${argument}` }])).trim().replace(/^["']|["']$/g, "");
-    return q || argument.slice(0, 200);
-  } catch { return argument.slice(0, 200); }
-}
 async function judgeVerdict(argument: string, citations: Citation[]) {
   const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
   const sys = 'You are a debate fact-checker and scorer. Given an ARGUMENT and SEARCH SNIPPETS: 1) extract the single most important factual claim; 2) rule supported/unsupported/misleading; 3) score 0-10 on factual_accuracy, logic, evidence, persuasiveness; 4) name any fallacies. Return ONLY JSON: {"key_claim":"...","verdict":"supported|unsupported|misleading","rationale":"<=20 words","citation_index":<int or null>,"scores":{"factual_accuracy":0,"logic":0,"evidence":0,"persuasiveness":0},"fallacies":[]}. supported = a snippet clearly backs the claim; unsupported = none addresses it; misleading = a snippet contradicts it. citation_index is the snippet you relied on, or null.';
@@ -106,8 +98,9 @@ async function judgeVerdict(argument: string, citations: Citation[]) {
     citation_index: ci,
   };
 }
-async function judgePipeline(argument: string, topic: string) {
-  const query = await extractSearchQuery(argument, topic);
+async function judgePipeline(argument: string, _topic: string) {
+  // Search You.com directly with the wizard's argument (no LLM query-extraction call).
+  const query = argument.trim().slice(0, 160);
   let citations: Citation[] = [];
   try { citations = await searchYouCom(query); } catch { citations = []; }
   if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null, search_query: query };
@@ -116,14 +109,10 @@ async function judgePipeline(argument: string, topic: string) {
 }
 
 // ---------- wizard generation (inlined) ----------
-async function buildAgainstQuery(topic: string, opp: string): Promise<string> {
-  const sys = "You craft ONE concise web-search query (max 12 words) to find EVIDENCE AGAINST a debate topic (the opposing side). If an OPPONENT ARGUMENT is given, target evidence that rebuts it. Reply with ONLY the query text, no quotes.";
-  const user = `TOPIC: ${topic || "(unspecified)"}\n` + (opp ? `OPPONENT ARGUMENT (to rebut): ${opp}` : "OPPONENT ARGUMENT: (none yet)");
-  const fallback = (topic ? `${topic} criticism counterargument evidence` : "counterargument evidence").slice(0, 200);
-  try {
-    const q = (await chat(EXTRACT_MODEL, [{ role: "system", content: sys }, { role: "user", content: user }], 0.3)).trim().replace(/^["']|["']$/g, "");
-    return q || fallback;
-  } catch { return fallback; }
+// Build the AGAINST-side grounding query with a plain string (no LLM call) to cut latency.
+function buildAgainstQuery(topic: string): string {
+  const t = (topic || "this position").trim();
+  return `${t} strongest counterarguments and evidence against`.trim().slice(0, 160);
 }
 // Difficulty tunes the wizard's rhetorical strength and how disciplined it is about
 // grounding. The judge still judges fairly, so a weaker wizard genuinely loses more.
@@ -168,7 +157,7 @@ function fallbackArgument(topic: string, citations: Citation[]): string {
 /** Generate + judge the wizard's turn, fully self-contained. */
 async function runWizard(topic: string, opp: string, difficulty: Difficulty) {
   let grounding: Citation[] = [];
-  try { grounding = await searchYouCom(await buildAgainstQuery(topic, opp)); } catch { grounding = []; }
+  try { grounding = await searchYouCom(buildAgainstQuery(topic)); } catch { grounding = []; }
   let argument: string;
   try { argument = (await writeRebuttal(topic, opp, grounding, difficulty)) || fallbackArgument(topic, grounding); }
   catch { argument = fallbackArgument(topic, grounding); }

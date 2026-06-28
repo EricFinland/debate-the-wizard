@@ -24,9 +24,9 @@ const env = (k: string, fb = "") => Deno.env.get(k) ?? fb;
 const SCORE = { supported: 10, unsupported: 0, misleading: -5 } as const;
 type Verdict = keyof typeof SCORE;
 const JUDGE_MODEL = env("JUDGE_MODEL", "anthropic/claude-sonnet-4.6");
-const EXTRACT_MODEL = env("EXTRACT_MODEL", "anthropic/claude-haiku-4.5");
 const SEARCH_COUNT = Number(env("SEARCH_COUNT", "6")) || 6;
 const MAX_ARG = 4000;
+const MAX_QUERY = Number(env("MAX_QUERY", "160")) || 160; // cap the You.com query length
 
 // Fall back to the known project URL if INSFORGE_API_URL is not in the deployment env.
 const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
@@ -78,12 +78,9 @@ async function searchYouCom(query: string): Promise<Citation[]> {
   }
   return out;
 }
-async function extractSearchQuery(argument: string, topic: string): Promise<string> {
-  const sys = "You turn a debate argument into ONE concise web-search query (max 12 words) targeting its single most important factual claim. Reply with ONLY the query text, no quotes.";
-  try {
-    const q = (await chat(EXTRACT_MODEL, [{ role: "system", content: sys }, { role: "user", content: `TOPIC: ${topic || "(unspecified)"}\nARGUMENT: ${argument}` }])).trim().replace(/^["']|["']$/g, "");
-    return q || argument.slice(0, 200);
-  } catch { return argument.slice(0, 200); }
+/** Build the You.com query straight from the player's argument: collapse whitespace + cap length (no extra LLM call). */
+function buildSearchQuery(argument: string): string {
+  return argument.replace(/\s+/g, " ").trim().slice(0, MAX_QUERY);
 }
 async function judgeVerdict(argument: string, citations: Citation[]) {
   const list = citations.map((c, i) => `[${i}] ${c.title} (${c.url})\n${c.snippet}`).join("\n\n");
@@ -100,9 +97,9 @@ async function judgeVerdict(argument: string, citations: Citation[]) {
     citation_index: ci,
   };
 }
-/** Full self-contained judge pipeline: search -> extract -> judge. */
-async function judgePipeline(argument: string, topic: string) {
-  const query = await extractSearchQuery(argument, topic);
+/** Full self-contained judge pipeline: search (query = the argument itself) -> judge. ONE LLM call total. */
+async function judgePipeline(argument: string, _topic: string) {
+  const query = buildSearchQuery(argument);
   let citations: Citation[] = [];
   try { citations = await searchYouCom(query); } catch { citations = []; }
   if (!citations.length) return { key_claim: query, verdict: "unsupported" as Verdict, rationale: "No sources found to support this claim.", points: SCORE.unsupported, scores: ZERO_SCORES, fallacies: [] as string[], citations: [] as Citation[], citation_index: null as number | null, search_query: query };

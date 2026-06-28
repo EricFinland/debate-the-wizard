@@ -257,6 +257,8 @@ export function createDebateClient(
       avatar_url?: string | null;
       won: boolean | null;
       score: number;
+      /** Only verified players land on the public leaderboard. */
+      email_verified: boolean;
     }) => call<RecordMatchResponse>("record-match", "POST", input),
 
     /** Direct access to the pure judge pipeline (rarely needed from the UI). */

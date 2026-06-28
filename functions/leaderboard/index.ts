@@ -1,5 +1,5 @@
-// leaderboard — ranks profiles by lifetime wins across matches.
-// Read-only. Returns the top 20 profiles ordered by wins desc, then total_score desc.
+// leaderboard — ranks VERIFIED profiles by lifetime wins across matches.
+// Read-only. Returns the top 20 verified profiles ordered by wins desc, then total_score desc.
 // Falls back to the legacy side-A players-by-score ranking if the profiles table is empty.
 //
 // GET (or POST) -> { leaderboard: [{ display_name, avatar_url, wins, losses, total_score }] }
@@ -53,14 +53,15 @@ export default async function (req: Request): Promise<Response> {
 
   const limit = 20;
   try {
-    // Primary: rank profiles by lifetime wins, then total score. A read failure
-    // (e.g. profiles table not yet migrated) must NOT 500 the leaderboard — it
-    // falls through to the legacy players-by-score ranking below.
+    // Primary: rank VERIFIED profiles by lifetime wins, then total score. Only
+    // profiles with verified=true are eligible for the public leaderboard. A read
+    // failure (e.g. profiles table not yet migrated) must NOT 500 the leaderboard
+    // — it falls through to the legacy players-by-score ranking below.
     let profiles: any[] = [];
     try {
       profiles = await dbSelect(
         "profiles",
-        `order=wins.desc,total_score.desc&limit=${limit}&select=display_name,avatar_url,wins,losses,total_score`,
+        `verified=eq.true&order=wins.desc,total_score.desc&limit=${limit}&select=display_name,avatar_url,wins,losses,total_score`,
       );
     } catch {
       profiles = [];
@@ -79,7 +80,9 @@ export default async function (req: Request): Promise<Response> {
 
     // Fallback: profiles empty or unavailable -> legacy players-by-score behavior.
     return json({ leaderboard: await legacyLeaderboard(limit) });
-  } catch (err) {
-    return json({ error: String(err instanceof Error ? err.message : err) }, 500);
+  } catch {
+    // Leaderboard must NEVER hard-fail (the players fallback can gateway-timeout).
+    // Return empty rather than a 500 so the UI never shows a gateway error.
+    return json({ leaderboard: [] });
   }
 }

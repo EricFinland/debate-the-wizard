@@ -1,8 +1,8 @@
 "use client";
 
-// AuthBar — top-right account chip for Debate the Wizard.
-// Logged out: "Sign in" with Google + GitHub buttons.
-// Logged in: avatar/name + W-L record + total score + sign-out.
+// AuthBar - top-right account chip for Debate the Wizard.
+// Logged out: Google + GitHub buttons plus an email/password log in / sign up form.
+// Logged in: avatar/name + W-L record + total score + sign-out (+ unverified hint).
 // Follows the ANIMATION RULE: CSS transitions/keyframes only (no framer here).
 
 import { useEffect, useRef, useState } from "react";
@@ -13,6 +13,7 @@ export interface AuthBarUser {
   email: string;
   name?: string;
   avatar_url?: string;
+  emailVerified?: boolean;
 }
 
 export interface AuthBarProfile {
@@ -23,9 +24,12 @@ export interface AuthBarProfile {
 
 export interface AuthBarProps {
   user: AuthBarUser | null;
-  onSignIn: (provider: "google" | "github") => void;
-  onSignOut: () => void;
   profile?: AuthBarProfile | null;
+  onSignIn: (provider: "google" | "github") => void;
+  onEmailSignIn: (email: string, password: string) => void;
+  onEmailSignUp: (email: string, password: string) => void;
+  onSignOut: () => void;
+  authError?: string | null;
 }
 
 /** Best-effort display name for the chip. */
@@ -74,9 +78,31 @@ function GithubGlyph() {
   );
 }
 
-export function AuthBar({ user, onSignIn, onSignOut, profile }: AuthBarProps) {
+export function AuthBar({
+  user,
+  profile,
+  onSignIn,
+  onEmailSignIn,
+  onEmailSignUp,
+  onSignOut,
+  authError,
+}: AuthBarProps) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  const trimmedEmail = email.trim();
+  const emailOk = /.+@.+\..+/.test(trimmedEmail);
+  const passwordOk = password.length >= 6;
+  const canSubmit = emailOk && passwordOk;
+
+  function submitEmail() {
+    if (!canSubmit) return;
+    if (mode === "signin") onEmailSignIn(trimmedEmail, password);
+    else onEmailSignUp(trimmedEmail, password);
+  }
 
   // Close the menu on outside click / Escape.
   useEffect(() => {
@@ -127,8 +153,8 @@ export function AuthBar({ user, onSignIn, onSignOut, profile }: AuthBarProps) {
           <div
             role="menu"
             className={cn(
-              "absolute right-0 top-[calc(100%+0.5rem)] w-60 origin-top-right",
-              "rounded-2xl border border-arcane/30 bg-arena-900/95 p-2 backdrop-blur-xl",
+              "absolute right-0 top-[calc(100%+0.5rem)] w-72 origin-top-right",
+              "rounded-2xl border border-arcane/30 bg-arena-900 p-2",
               "shadow-2xl shadow-black/60 ring-1 ring-white/5",
               "animate-scale-in",
             )}
@@ -172,6 +198,81 @@ export function AuthBar({ user, onSignIn, onSignOut, profile }: AuthBarProps) {
               </span>
               Continue with GitHub
             </button>
+
+            {/* Divider */}
+            <div className="my-2 flex items-center gap-2 px-1">
+              <span className="h-px flex-1 bg-white/10" />
+              <span className="text-[0.6rem] uppercase tracking-widest text-zinc-500">
+                or
+              </span>
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {/* Email / password form */}
+            <form
+              className="px-1 pb-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitEmail();
+              }}
+            >
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={cn(
+                  "w-full rounded-lg border border-white/10 bg-arena-800 px-3 py-2 text-sm text-zinc-100",
+                  "placeholder:text-zinc-500",
+                  "focus:border-arcane/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-arcane/50",
+                )}
+              />
+              <input
+                type="password"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                placeholder="Password (min 6)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={cn(
+                  "mt-1.5 w-full rounded-lg border border-white/10 bg-arena-800 px-3 py-2 text-sm text-zinc-100",
+                  "placeholder:text-zinc-500",
+                  "focus:border-arcane/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-arcane/50",
+                )}
+              />
+
+              {authError && (
+                <p className="mt-1.5 px-0.5 text-xs text-verdict-misleading">
+                  {authError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={cn(
+                  "mt-2 w-full rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-150",
+                  "bg-arcane/20 text-arcane border border-arcane/40",
+                  "hover:bg-arcane/30 hover:border-arcane/70",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-arcane/60",
+                  "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-arcane/20 disabled:hover:border-arcane/40",
+                )}
+              >
+                {mode === "signin" ? "Log in" : "Sign up"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setMode((m) => (m === "signin" ? "signup" : "signin"))
+                }
+                className="mt-2 w-full text-center text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              >
+                {mode === "signin"
+                  ? "Need an account? Sign up"
+                  : "Have an account? Log in"}
+              </button>
+            </form>
           </div>
         )}
       </div>
@@ -193,7 +294,7 @@ export function AuthBar({ user, onSignIn, onSignOut, profile }: AuthBarProps) {
         aria-expanded={open}
         className={cn(
           "group inline-flex items-center gap-2.5 rounded-full border border-arcane/40",
-          "bg-arena-800/70 py-1.5 pl-1.5 pr-3 text-left backdrop-blur-md",
+          "bg-arena-800/70 py-1.5 pl-1.5 pr-3 text-left",
           "transition-all duration-200",
           "hover:border-arcane/70 hover:bg-arena-800 hover:shadow-glow-arcane",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-arcane/60",
@@ -250,7 +351,7 @@ export function AuthBar({ user, onSignIn, onSignOut, profile }: AuthBarProps) {
           role="menu"
           className={cn(
             "absolute right-0 top-[calc(100%+0.5rem)] w-64 origin-top-right",
-            "rounded-2xl border border-arcane/30 bg-arena-900/95 p-3 backdrop-blur-xl",
+            "rounded-2xl border border-arcane/30 bg-arena-900 p-3",
             "shadow-2xl shadow-black/60 ring-1 ring-white/5",
             "animate-scale-in",
           )}
@@ -304,6 +405,12 @@ export function AuthBar({ user, onSignIn, onSignOut, profile }: AuthBarProps) {
               </div>
             </div>
           </div>
+
+          {user.emailVerified === false && (
+            <p className="mt-2.5 rounded-lg border border-rune/20 bg-rune/5 px-2.5 py-1.5 text-[0.7rem] leading-snug text-zinc-400">
+              Sign in with Google to appear on the leaderboard.
+            </p>
+          )}
 
           <div className="my-2.5 h-px bg-white/5" />
 
