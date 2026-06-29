@@ -14,6 +14,7 @@
 
 :root {
     /* ---- Tokyo Night NIGHT (dark) — frame / outside the screen ---- */
+    --page-bg: #1a1b26;
     --bg: #1a1b26;
     --bg-alt: #16161d;
     --text: #a9b1d6;
@@ -50,7 +51,7 @@
 }
 
 body {
-    background-color: var(--bg);
+    background-color: var(--page-bg);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -155,7 +156,7 @@ body {
     z-index: 5;
     transform: translateY(-50%);
     padding: 0 8px;
-    background: var(--bg);            /* dark notch over the border line */
+    background: var(--page-bg);       /* exact body color over the border line */
     color: var(--accent);
     font-family: var(--term-font);
     font-weight: 500;

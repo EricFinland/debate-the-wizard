@@ -330,6 +330,19 @@ const Battle = (() => {
                 snip.className = 'citation-snippet';
                 snip.textContent = c.snippet;
                 item.appendChild(snip);
+
+                if (String(c.snippet).length > 120) {
+                    const more = document.createElement('button');
+                    more.className = 'citation-more';
+                    more.type = 'button';
+                    more.textContent = 'See More...';
+                    more.addEventListener('click', event => {
+                        event.stopPropagation();
+                        const expanded = item.classList.toggle('is-expanded');
+                        more.textContent = expanded ? 'Show Less' : 'See More...';
+                    });
+                    item.appendChild(more);
+                }
             }
             group.appendChild(item);
         });
@@ -532,7 +545,7 @@ const Battle = (() => {
             }
             if (!roomId) throw new Error('no room id');
         } catch (err) {
-            say('The arcane connection wavered... try stating your claim again.');
+            say('The magic connection wavered... try stating your claim again.');
             await waitForClick();
             return beginDebate();
         }
@@ -641,7 +654,7 @@ const Battle = (() => {
             claim = res && res.claim ? res.claim : res;
             showCitations((res && res.citations) || (claim && claim.citations) || []);
         } catch (err) {
-            say('The arcane connection wavered... cast your argument again.');
+            say('The magic connection wavered... cast your argument again.');
             await waitForClick();
             busy = false;
             return showActionMenu();

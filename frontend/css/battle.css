@@ -51,6 +51,7 @@
 
 #enemy-wizard {
     --wizard-size: 96px;
+    margin-top: -20px;
     right: 54px;
     transform: scaleX(-1); /* face the player */
 }
