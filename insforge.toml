@@ -1,5 +1,5 @@
 [auth]
-allowed_redirect_urls = ["https://atjgzcv9.insforge.site", "https://atjgzcv9.insforge.site/", "http://localhost:3000", "http://localhost:3000/"]
+allowed_redirect_urls = ["https://4eychqk3.insforge.site", "https://4eychqk3.insforge.site/", "http://localhost:3000", "http://localhost:3000/"]
 require_email_verification = false
 verify_email_method = "code"
 reset_password_method = "code"

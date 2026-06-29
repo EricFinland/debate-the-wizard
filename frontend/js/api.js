@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    var BASE = 'https://atjgzcv9.us-east.insforge.app';
+    var BASE = 'https://4eychqk3.us-east.insforge.app';
     var CLIENT_ID_KEY = 'dtw_client_id';
 
     // easy/medium/hard/impossible (pixel) -> novice/adept/archmage/impossible (backend).

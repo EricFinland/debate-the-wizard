@@ -11,7 +11,7 @@ declare const Deno: { env: { get(key: string): string | undefined } };
 export const env = (k: string, fallback = ""): string => Deno.env.get(k) ?? fallback;
 
 // ---------- constants ----------
-export const DEFAULT_BASE = "https://atjgzcv9.us-east.insforge.app";
+export const DEFAULT_BASE = "https://4eychqk3.us-east.insforge.app";
 
 export const SCORE = { supported: 10, unsupported: 0, misleading: -5 } as const;
 export type Verdict = keyof typeof SCORE;
