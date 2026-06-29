@@ -1,7 +1,7 @@
-# Setup & Deploy — backend skeleton
+# Setup & Deploy
 
-This covers step 1 of the build order: **InsForge init → tables → `/judge-claim` → test with curl.**
-Everything here is run from the repo root. The interactive/secret steps (login, keys) only you can do.
+This guide covers how to deploy the Debate the Wizard backend to InsForge and run the frontend locally.
+Everything here is run from the repo root.
 
 ## 0. Prereqs
 
@@ -29,7 +29,7 @@ npx @insforge/cli db migrations up --all
 npx @insforge/cli db tables                     # verify: rooms, players, claims, citations
 ```
 
-The schema lives in [`migrations/20260628120000_init.sql`](migrations/20260628120000_init.sql).
+The schema lives in `backend/migrations/`.
 
 ## 3. Store the secrets
 
@@ -45,36 +45,20 @@ npx @insforge/cli secrets add INSFORGE_API_KEY "<your-insforge-project-key>"
 npx @insforge/cli secrets list
 ```
 
-> If `npx @insforge/cli metadata` shows the gateway URL/key are auto-injected into
-> functions, you can drop `INSFORGE_API_URL` / `INSFORGE_API_KEY` and read the
-> injected names instead — adjust `env(...)` calls in the function accordingly.
-
 ## 4. Deploy the functions
 
-The core pipeline (agent-pipeline track):
+Deploy all the orchestration / infra functions from the `backend/functions` directory:
 
 ```bash
-npx @insforge/cli functions deploy judge-claim \
-  --file functions/judge-claim/index.ts \
-  --name "Judge a claim" \
-  --description "Grounds a debate claim in You.com results and rules supported/unsupported/misleading"
-```
-
-The orchestration / infra functions ("the rest" track):
-
-```bash
-npx @insforge/cli functions deploy create-room     --file functions/create-room/index.ts     --name "Create room"
-npx @insforge/cli functions deploy submit-argument --file functions/submit-argument/index.ts --name "Submit argument"
-npx @insforge/cli functions deploy advance-wizard  --file functions/advance-wizard/index.ts  --name "Advance wizard"
-npx @insforge/cli functions deploy get-room        --file functions/get-room/index.ts        --name "Get room"
-npx @insforge/cli functions deploy leaderboard     --file functions/leaderboard/index.ts     --name "Leaderboard"
-npx @insforge/cli functions deploy health          --file functions/health/index.ts          --name "Health"
+npx @insforge/cli functions deploy create-room     --file backend/functions/create-room/index.ts     --name "Create room"
+npx @insforge/cli functions deploy submit-argument --file backend/functions/submit-argument/index.ts --name "Submit argument"
+npx @insforge/cli functions deploy get-room        --file backend/functions/get-room/index.ts        --name "Get room"
+npx @insforge/cli functions deploy leaderboard     --file backend/functions/leaderboard/index.ts     --name "Leaderboard"
+npx @insforge/cli functions deploy record-match    --file backend/functions/record-match/index.ts    --name "Record match"
+npx @insforge/cli functions deploy health          --file backend/functions/health/index.ts          --name "Health"
 
 npx @insforge/cli functions list
 ```
-
-`wizard-turn` is owned by the agent-pipeline branch; deploy it once that's ready
-(`advance-wizard` returns a clear 503 until then).
 
 Each is live at `https://<PROJECT>.insforge.dev/functions/<slug>`. Quick check:
 
@@ -82,26 +66,32 @@ Each is live at `https://<PROJECT>.insforge.dev/functions/<slug>`. Quick check:
 curl https://<PROJECT>.insforge.dev/functions/health
 ```
 
-## 5. Test with curl — the step-1 success gate
+## 5. Test with curl
+
+We include a local script to smoke test the AI workflow locally before hitting the live endpoints:
 
 ```bash
-FUNCTION_URL=https://<PROJECT>.insforge.dev/functions/judge-claim ./scripts/test-judge.sh
+# Provide environment variables locally
+export INSFORGE_API_URL="..."
+export INSFORGE_API_KEY="..."
+export YOUCOM_API_KEY="..."
+export YOUCOM_SEARCH_URL="https://ydc-index.io/v1/search"
+export SEARCH_COUNT="6"
+
+./scripts/test-agent-workflow.sh "The moon landing was fake because NASA admitted the footage was staged."
 ```
 
-Expected: a `supported` verdict with real citations on the first claim, and
-`unsupported`/`misleading` on the made-up one. **If this works, the whole game works.**
+Expected: The workflow should extract the claims, search You.com, evaluate the reasoning, generate the AI rebuttal, and finally score both sides.
 
-Debug with: `npx @insforge/cli logs function.logs`
+## 6. Running the Frontend
 
-## 6. Realtime (frontend)
+The pixel-art Vanilla JS frontend does not require a build step. It communicates directly with the functions via `frontend/js/api.js`.
 
-UI updates come from subscribing to row-change events on `claims` / `players`
-filtered by `room_id` — no server-side publishing needed. Confirm the exact event
-names with `npx @insforge/cli metadata` and see the client pattern in
-[docs/backend-architecture.md](docs/backend-architecture.md). If table-change
-subscriptions need enabling, do it there.
+To run it locally:
+```bash
+cd frontend
+npx serve . -p 3000
+```
+Open `http://localhost:3000` to play!
 
-## What's next
-
-- `wizard-turn` edge fn (agent-pipeline track; reuses the search+judge pipeline)
-- React arena frontend (frontend track), then deploy via `npx @insforge/cli deployments`
+Note: You may need to edit `BASE` inside `frontend/js/api.js` to point to your new project URL (`https://<PROJECT>.insforge.dev`).
