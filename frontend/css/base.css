@@ -32,8 +32,7 @@
 }
 
 body {
-    /* far background layer only — a soft pixel landscape behind everything */
-    background: #1b2733 url('../img/bg-scene.svg') center center / cover no-repeat fixed;
+    background-color: #111;
     display: flex;
     justify-content: center;
     align-items: center;
