@@ -37,7 +37,6 @@ const Menu = (() => {
     function refresh() {
         const save = Storage.load() || {};
         const name = save.name || 'WIZARD';
-        document.getElementById('menu-greeting').textContent = 'WELCOME, ' + name;
         nav.setItems([
             ...document.querySelectorAll('#staff-grid .staff-opt'),
             document.getElementById('menu-quit')

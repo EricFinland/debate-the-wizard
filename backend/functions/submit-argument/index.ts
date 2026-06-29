@@ -14,6 +14,7 @@ const MAX_ARG = 4000;
 const BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
 const DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
 const KEY = env("INSFORGE_API_KEY");
+type ClaimVerdict = "supported" | "unsupported" | "misleading";
 
 const { dbSelect, dbInsert, dbUpdate } = makeDb(DATA, KEY);
 
@@ -32,6 +33,22 @@ async function recomputeScore(room_id: string, side: "A" | "B", author: "player"
 // Convert 0-25 scale to 0-10 format for db (e.g. 25 -> 10)
 function scaleScore(total25: number): number {
   return Math.max(0, Math.min(10, Math.round((total25 / 25) * 10)));
+}
+
+function deriveClaimVerdict(factCheck: {
+  checked_claims?: { verdict?: string }[];
+  overall_reliability?: string;
+}): ClaimVerdict {
+  const checked = Array.isArray(factCheck.checked_claims) ? factCheck.checked_claims : [];
+  const verdicts = checked.map((claim) => String(claim.verdict || "").toLowerCase().trim());
+  const reliability = String(factCheck.overall_reliability || "").toLowerCase().trim();
+
+  if (verdicts.includes("false")) return "misleading";
+  if (verdicts.includes("mixed")) return "misleading";
+  if (verdicts.includes("true")) return "supported";
+  if (reliability === "high") return "supported";
+  if (reliability === "low") return "misleading";
+  return "unsupported";
 }
 
 export default async function (req: Request): Promise<Response> {
@@ -75,11 +92,12 @@ export default async function (req: Request): Promise<Response> {
 
     const playerPoints = scaleScore(result.judge_result.user_score.total);
     const wizardPoints = scaleScore(result.judge_result.ai_score.total);
+    const playerVerdict = deriveClaimVerdict(result.fact_check_report);
 
     const [playerClaim] = await dbInsert("claims", [{
       room_id, round_no, author: "player", argument,
       key_claim: result.user_claim_report.main_claim,
-      verdict: result.judge_result.winner,
+      verdict: playerVerdict,
       rationale: result.judge_result.explanation,
       points: playerPoints,
       scores: result.judge_result.user_score,

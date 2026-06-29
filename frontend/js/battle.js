@@ -8,18 +8,12 @@
 
 const Battle = (() => {
     /* --- difficulty tuning (cosmetic color comes from Wizard.enemyColorFor) ---
-       The backend decides verdicts; the multipliers only scale how the damage
-       FEELS so low difficulty clearly favors the player and impossible is brutal:
-         dmgMult       - how hard the WIZARD hits the player (supported/fizzle).
-         playerDmgMult - how hard the PLAYER hits the wizard on a supported claim.
-         backfireMult  - how much a MISLEADING player claim hurts the player.
-       easy: weak wizard, strong player hits, forgiving backfire.
-       impossible: brutal wizard, blunted player hits, punishing backfire. */
+       The backend decides verdicts; dmgMult only scales how hard the wizard hits. */
     const DIFFICULTY = {
-        easy:       { label: 'EASY',       dmgMult: 0.55, playerDmgMult: 1.35, backfireMult: 0.4, level: 3,  backend: 'novice' },
-        medium:     { label: 'MEDIUM',     dmgMult: 1.0,  playerDmgMult: 1.0,  backfireMult: 1.0, level: 6,  backend: 'adept' },
-        hard:       { label: 'HARD',       dmgMult: 1.25, playerDmgMult: 0.85, backfireMult: 1.2, level: 9,  backend: 'archmage' },
-        impossible: { label: 'IMPOSSIBLE', dmgMult: 1.6,  playerDmgMult: 0.7,  backfireMult: 1.5, level: 13, backend: 'impossible' }
+        easy:       { label: 'EASY',       dmgMult: 0.8, level: 3,  backend: 'novice' },
+        medium:     { label: 'MEDIUM',     dmgMult: 1.0, level: 6,  backend: 'adept' },
+        hard:       { label: 'HARD',       dmgMult: 1.2, level: 9,  backend: 'archmage' },
+        impossible: { label: 'IMPOSSIBLE', dmgMult: 1.5, level: 13, backend: 'impossible' }
     };
 
     const START_HP = 100;
@@ -35,7 +29,7 @@ const Battle = (() => {
     const CAST_COLOR = '#b06bff';      // supported -> arcane bolt
     const FIZZLE_COLOR = '#9a9a9a';    // unsupported -> weak grey
 
-    /* curated debatable topics for the "pick for me" flow.
+    /* curated debatable topics for the "RANDOMIZE" flow.
        claim = the FOR position, counter = the AGAINST position. */
     const TOPICS = [
         { claim: 'Nuclear energy is the best tool we have for fighting climate change.',
@@ -70,8 +64,6 @@ const Battle = (() => {
     let round = 1;
     let roundsTotal = 3;
     let mappedDifficulty = 'adept';
-    let player_dmgMult = 1.0;     // scales player's supported-claim damage
-    let player_backfireMult = 1.0; // scales player's misleading backfire damage
     let lastCitations = [];      // citations from the most recent turn (for PACK)
     let lastPlayerArg = '';      // fed to advance-wizard as opponent_argument
     let argResolver = null;      // resolver while waiting on the text input
@@ -80,9 +72,6 @@ const Battle = (() => {
     let roundResult = { player: null, wizard: null };
 
     let actionNav = null;
-
-    // tracks whether the sources panel has been revealed for the current duel
-    let sourcesShown = false;
 
     // DOM refs (resolved on init)
     let els = {};
@@ -95,6 +84,8 @@ const Battle = (() => {
             enemyWizard: document.getElementById('enemy-wizard'),
             playerName: document.getElementById('player-name'),
             enemyName: document.getElementById('enemy-name'),
+            playerTopic: document.getElementById('player-topic'),
+            enemyTopic: document.getElementById('enemy-topic'),
             playerLvl: document.getElementById('player-lvl'),
             enemyLvl: document.getElementById('enemy-lvl'),
             playerHpBar: document.getElementById('player-hp-bar'),
@@ -119,9 +110,7 @@ const Battle = (() => {
             sideAgainst: document.getElementById('side-against'),
             // persistent stance reminder + tidy round result
             stanceBanner: document.getElementById('stance-banner'),
-            roundResult: document.getElementById('round-result'),
-            // the YOU.COM SOURCES panel (revealed only after first citations)
-            sidePanel: document.getElementById('side-panel')
+            roundResult: document.getElementById('round-result')
         };
         actionNav = KeyboardNav.create({ columns: 2 });
 
@@ -145,8 +134,8 @@ const Battle = (() => {
             submitArg();
         });
         els.argInput.addEventListener('keydown', event => {
-            // Enter submits; Shift+Enter inserts a newline
-            if (event.key === 'Enter' && !event.shiftKey) {
+            // Enter submits the one-line argument input.
+            if (event.key === 'Enter') {
                 event.preventDefault();
                 submitArg();
             }
@@ -214,14 +203,14 @@ const Battle = (() => {
     function updateHp(side) {
         const c = side === 'player' ? player : enemy;
         const bar = side === 'player' ? els.playerHpBar : els.enemyHpBar;
+        const lvlEl = side === 'player' ? els.playerLvl : els.enemyLvl;
         const pct = Math.max(0, c.hp / c.maxHp * 100);
         bar.style.width = pct + '%';
         if (pct > 50) bar.style.backgroundColor = 'var(--hp-green)';
         else if (pct > 20) bar.style.backgroundColor = 'var(--hp-yellow)';
         else bar.style.backgroundColor = 'var(--hp-red)';
-        if (side === 'player') {
-            els.playerHpText.textContent = Math.max(0, Math.ceil(c.hp)) + '/' + c.maxHp;
-        }
+        // second HUD line shows the health percentage (no level / no x/yy line)
+        if (lvlEl) lvlEl.textContent = '(' + Math.round(pct) + '%)';
     }
 
     function centerOf(el) {
@@ -273,10 +262,8 @@ const Battle = (() => {
         setTimeout(() => els.scene.classList.remove(cls), 650);
     }
 
-    /* ---------- argument input ----------
-       allowPick: PICK FOR ME + the side-picker appear ONLY at the opening
-       STATE-YOUR-CLAIM step. During FIGHT argument turns they stay hidden. */
-    function askForText(placeholder, allowPick) {
+    /* ---------- argument input ---------- */
+    function askForText(placeholder) {
         return new Promise(resolve => {
             els.actionMenu.classList.add('hidden');
             hideLegacyCitationBox();
@@ -286,18 +273,9 @@ const Battle = (() => {
             els.argInput.placeholder = placeholder || 'TYPE HERE...';
             els.inputWrap.classList.remove('hidden');
             els.submitBtn.disabled = false;
-            // pick-for-me only at the claim step; always start with the picker closed
-            hideSidePicker();
-            setPickForMe(!!allowPick);
             argResolver = resolve;
             setTimeout(() => els.argInput.focus(), 30);
         });
-    }
-
-    /* show/hide the PICK FOR ME button (only valid at the opening claim) */
-    function setPickForMe(visible) {
-        if (!els.pickForMe) return;
-        els.pickForMe.classList.toggle('hidden', !visible);
     }
 
     function submitArg() {
@@ -314,46 +292,12 @@ const Battle = (() => {
         fn(val);
     }
 
-    /* ---------- sources panel reveal (shared contract) ----------
-       #side-panel starts HIDDEN (is-hidden). It is revealed only AFTER the first
-       argument of a duel produces citations, and hidden again on duel start/reset
-       and when leaving battle. Every toggle dispatches a 'resize' so fit.js
-       re-centers / re-reserves the panel width. */
-    function setSidePanel(visible) {
-        if (!els.sidePanel) return;
-        const isHidden = els.sidePanel.classList.contains('is-hidden');
-        // only act (and dispatch resize) when the state actually changes
-        if (visible && isHidden) {
-            els.sidePanel.classList.remove('is-hidden');
-            sourcesShown = true;
-            window.dispatchEvent(new Event('resize'));
-        } else if (!visible && !isHidden) {
-            els.sidePanel.classList.add('is-hidden');
-            sourcesShown = false;
-            window.dispatchEvent(new Event('resize'));
-        } else {
-            // keep the flag in sync even when no DOM change was needed
-            sourcesShown = visible;
-        }
-    }
-
-    function hideSidePanel() { setSidePanel(false); }
-    function revealSidePanel() { setSidePanel(true); }
-
-    /* trim a snippet to ~110 chars on a word boundary with an ellipsis */
-    function trimSnippet(text) {
-        const s = String(text || '').trim().replace(/\s+/g, ' ');
-        if (s.length <= 110) return s;
-        return s.slice(0, 107).replace(/\s+\S*$/, '') + '...';
-    }
-
     /* ---------- citations (You.com sources) ----------
        Citations render into the side panel (#side-citations) now, NOT the dialog.
-       Newest sources are prepended so the most recent turn sits on top. Cap to the
-       top 4 sources and trim each snippet so the panel stays readable (no walls of
-       tiny text). The first turn that yields citations reveals #side-panel. */
+       Newest sources are prepended so the most recent turn sits on top. The
+       dialog only narrates the verdict; the big source dump lives to the right. */
     function showCitations(citations) {
-        const fresh = Array.isArray(citations) ? citations.slice(0, 4) : [];
+        const fresh = Array.isArray(citations) ? citations.slice(0, 2) : [];
         lastCitations = fresh; // PACK / status still reference the latest turn
         const list = els.sideCitations;
         if (!list) return;
@@ -384,7 +328,7 @@ const Battle = (() => {
             if (c.snippet) {
                 const snip = document.createElement('span');
                 snip.className = 'citation-snippet';
-                snip.textContent = trimSnippet(c.snippet);
+                snip.textContent = c.snippet;
                 item.appendChild(snip);
             }
             group.appendChild(item);
@@ -393,9 +337,6 @@ const Battle = (() => {
         // newest on top + scroll to it
         list.insertBefore(group, list.firstChild);
         list.scrollTop = 0;
-
-        // first citations of the duel -> reveal the sources panel
-        revealSidePanel();
     }
 
     /* clear the side panel sources (called on a fresh duel) */
@@ -408,20 +349,18 @@ const Battle = (() => {
         if (els.citationBox) els.citationBox.classList.add('hidden');
     }
 
-    /* ---------- stance banner (persistent "YOU ARGUE FOR: <topic>") ---------- */
-    function showStanceBanner(topic) {
-        if (!els.stanceBanner) return;
-        els.stanceBanner.innerHTML = '';
-        const lbl = document.createElement('span');
-        lbl.className = 'stance-label';
-        lbl.textContent = 'YOU ARGUE FOR:';
-        const txt = document.createElement('span');
-        txt.className = 'stance-topic';
-        txt.textContent = topic || '';
-        txt.title = topic || '';
-        els.stanceBanner.appendChild(lbl);
-        els.stanceBanner.appendChild(txt);
-        els.stanceBanner.classList.remove('hidden');
+    /* ---------- topic reminder beside HUD names ---------- */
+    function showTopicInHud(topic) {
+        const label = topic ? '[' + topic + ']' : '';
+        if (els.playerTopic) {
+            els.playerTopic.textContent = label;
+            els.playerTopic.title = topic || '';
+        }
+        if (els.enemyTopic) {
+            els.enemyTopic.textContent = label;
+            els.enemyTopic.title = topic || '';
+        }
+        hideStanceBanner();
     }
 
     function hideStanceBanner() {
@@ -429,12 +368,19 @@ const Battle = (() => {
     }
 
     /* ---------- clean round-result UI (both sides, color-coded) ----------
-       roundResult.player / .wizard each: { verdict, rationale, dmg, dmgTo } */
+       roundResult.player / .wizard each: { verdict, rationale, claimText, dmgDealt, dmgTaken } */
     const VERDICT_LABEL = {
         supported: 'SUPPORTED',
         misleading: 'MISLEADING',
         unsupported: 'UNSUPPORTED'
     };
+
+    function shortClaim(claim) {
+        const t = (claim && (claim.key_claim || claim.claim || claim.argument)) || '';
+        const s = String(t).trim();
+        if (s.length <= 140) return s;
+        return s.slice(0, 137).replace(/\s+\S*$/, '') + '...';
+    }
 
     function buildResultRow(who, data) {
         const verdict = (data && data.verdict) || 'unsupported';
@@ -457,27 +403,24 @@ const Battle = (() => {
         if (typeof data.dmg === 'number' && data.dmg > 0) {
             const dmg = document.createElement('span');
             dmg.className = 'rr-dmg rr-dmg-' + (data.dmgTo === 'self' ? 'taken' : 'dealt');
-            const verb = data.dmgTo === 'self' ? '-' : '';
-            dmg.textContent = (data.dmgTo === 'self' ? 'TOOK ' : 'DEALT ') + verb + data.dmg;
+            dmg.textContent = (data.dmgTo === 'self' ? 'TOOK ' : 'DEALT ') + data.dmg;
             head.appendChild(dmg);
         }
         row.appendChild(head);
 
-        // compact: ONE-LINE rationale only (no long claim text). Trim to ~90 chars.
+        if (data.claimText) {
+            const ct = document.createElement('div');
+            ct.className = 'rr-claim';
+            ct.textContent = '"' + data.claimText + '"';
+            row.appendChild(ct);
+        }
         if (data.rationale) {
             const ra = document.createElement('div');
             ra.className = 'rr-rationale';
-            ra.textContent = oneLine(data.rationale, 90);
+            ra.textContent = data.rationale;
             row.appendChild(ra);
         }
         return row;
-    }
-
-    /* collapse to a single trimmed line with an ellipsis */
-    function oneLine(text, max) {
-        const s = String(text || '').trim().replace(/\s+/g, ' ');
-        if (s.length <= max) return s;
-        return s.slice(0, max - 3).replace(/\s+\S*$/, '') + '...';
     }
 
     function renderRoundResult() {
@@ -525,9 +468,6 @@ const Battle = (() => {
             maxHp: START_HP,
             dmgMult: cfg.dmgMult
         };
-        // player-facing damage feel for this difficulty (forgiving on easy)
-        player_dmgMult = cfg.playerDmgMult;
-        player_backfireMult = cfg.backfireMult;
 
         roomId = null;
         round = 1;
@@ -544,20 +484,17 @@ const Battle = (() => {
         // HUD
         els.playerName.textContent = player.name;
         els.enemyName.textContent = enemy.name;
-        els.playerLvl.textContent = 'Lv' + player.level;
-        els.enemyLvl.textContent = 'Lv' + enemy.level;
-        updateHp('player');
+        showTopicInHud('');
+        updateHp('player'); // sets the (NN%) on the second HUD line
         updateHp('enemy');
 
         // reset UI
         els.actionMenu.classList.add('hidden');
         els.moveMenu.classList.add('hidden');
         els.inputWrap.classList.add('hidden');
-        setPickForMe(false);
         hideLegacyCitationBox();
         hideSidePicker();
         clearSideCitations();
-        hideSidePanel();        // sources panel stays hidden until first citations
         hideStanceBanner();
         hideRoundResult();
         els.arrow.classList.add('hidden');
@@ -571,9 +508,9 @@ const Battle = (() => {
 
     async function beginDebate() {
         say('The ' + enemy.name + ' bars your path. STATE YOUR CLAIM to begin the duel!');
-        // The input wrap exposes a "pick for me" button alongside CAST; either a
+        // The input wrap exposes a "RANDOMIZE" button alongside CAST; either a
         // typed claim or a picked side funnels into launchDuel().
-        const topic = await askForText('STATE YOUR CLAIM...', true);
+        const topic = await askForText('STATE YOUR CLAIM...');
         await launchDuel(topic);
     }
 
@@ -600,8 +537,7 @@ const Battle = (() => {
             return beginDebate();
         }
 
-        // persistent reminder of what the player is defending this whole duel
-        showStanceBanner(topic);
+        showTopicInHud(topic);
 
         say('You argue FOR. ' + enemy.name + ' argues AGAINST. ' + roundsTotal + ' rounds. Choose FIGHT to cast an argument!');
         await waitForClick();
@@ -660,14 +596,11 @@ const Battle = (() => {
         if (act === 'fight') {
             runRound();
         } else if (act === 'run') {
-            // leave the duel and return to the difficulty menu
+            // leave the duel and return to the title screen
             els.actionMenu.classList.add('hidden');
             hideLegacyCitationBox();
             say(player.name + ' fled the debate...');
-            waitForClick().then(() => {
-                hideSidePanel(); // leaving battle -> re-center the game boy
-                ScreenManager.show('MENU');
-            });
+            waitForClick().then(() => ScreenManager.show('MAIN_MENU'));
         } else if (act === 'pack') {
             // sources now live in the side panel; point the player there
             els.actionMenu.classList.add('hidden');
@@ -756,7 +689,7 @@ const Battle = (() => {
         let dmg = 0;
         let dmgTo = 'enemy';
         if (verdict === 'supported') {
-            dmg = Math.round(rand(22, 30) * player_dmgMult);
+            dmg = rand(22, 30);
             els.playerWizard.classList.add('lunge');
             const animP = Wizard.playState(els.playerWizard, 'attack', 700);
             await delay(200);
@@ -769,8 +702,8 @@ const Battle = (() => {
             await animP;
             say('SUPPORTED! Your spell strikes for ' + dmg + '! ' + rationale);
         } else if (verdict === 'misleading') {
-            // BACKFIRE on the player (forgiving on easy via backfireMult)
-            dmg = Math.round(rand(18, 26) * player_backfireMult);
+            // BACKFIRE on the player
+            dmg = rand(18, 26);
             dmgTo = 'self';
             await projectile(els.playerWizard, els.playerWizard, FIZZLE_COLOR);
             player.hp = Math.max(0, player.hp - dmg);
@@ -796,6 +729,7 @@ const Battle = (() => {
         roundResult.player = {
             verdict: verdict,
             rationale: rationale,
+            claimText: shortClaim({ key_claim: claim && claim.key_claim, argument: lastPlayerArg }),
             dmg: dmg,
             dmgTo: dmgTo
         };
@@ -857,6 +791,7 @@ const Battle = (() => {
         roundResult.wizard = {
             verdict: verdict,
             rationale: rationale,
+            claimText: shortClaim(claim),
             dmg: dmg,
             // wizard "self" damage was taken by the enemy; otherwise dealt to player
             dmgTo: dmgTo === 'self' ? 'self' : 'enemy'
@@ -921,13 +856,11 @@ const Battle = (() => {
         again.addEventListener('click', event => {
             event.stopPropagation();
             restoreActionMenu();
-            hideSidePanel(); // leaving battle -> re-center the game boy
             ScreenManager.show('MENU');
         });
         board.addEventListener('click', event => {
             event.stopPropagation();
             restoreActionMenu();
-            hideSidePanel(); // leaving battle -> re-center the game boy
             ScreenManager.show('LEADERBOARD');
         });
         menu.appendChild(again);

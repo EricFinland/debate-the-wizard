@@ -59,7 +59,6 @@
 
         // Optimistic render from cache, then refresh from the SDK.
         function paint(user) {
-            var guestBtn = document.getElementById('acct-guest');
             if (user) {
                 if (loggedOut) loggedOut.classList.add('hidden');
                 if (loggedIn) loggedIn.classList.remove('hidden');
@@ -69,12 +68,9 @@
                         ? 'OAUTH VERIFIED - YOU CAN RANK ON THE LEADERBOARD'
                         : 'EMAIL ACCOUNT - SIGN IN WITH OAUTH TO RANK';
                 }
-                // Logged in: this control is just a way back to the title.
-                if (guestBtn) guestBtn.innerHTML = '◀ BACK';
             } else {
                 if (loggedIn) loggedIn.classList.add('hidden');
                 if (loggedOut) loggedOut.classList.remove('hidden');
-                if (guestBtn) guestBtn.innerHTML = '◀ PLAY AS GUEST';
             }
         }
 

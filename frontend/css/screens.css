@@ -1,11 +1,12 @@
 /* ========================================
    SCREENS - Main Menu, Registration, Difficulty Menu
+   Light theme (Tokyo Night Day) — colors from portfolio
    ======================================== */
 
 /* ---------- MAIN MENU ---------- */
 #main-menu-screen {
     background: var(--gs-black);
-    color: #fff;
+    color: var(--text);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -15,23 +16,20 @@
 }
 
 .mm-title {
-    color: var(--gold);
+    color: var(--accent);
     font-size: 24px;
     line-height: 30px;
-    text-shadow: 3px 3px 0 #000, 0 0 12px rgba(216, 176, 48, 0.4);
+    text-shadow: 2px 2px 0 rgba(55, 96, 191, 0.18);
 }
 
 .mm-sub {
     font-size: 8px;
-    color: #9aa6c8;
+    color: var(--comment);
     margin-bottom: 10px;
 }
 
 .mm-menu {
-    background: #fff;
-    color: #000;
-    border: 4px solid var(--ui-border);
-    border-radius: 4px;
+    color: var(--text);
     padding: 12px 18px;
     display: flex;
     flex-direction: column;
@@ -44,6 +42,7 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+    margin-left: 10px;
 }
 
 .mm-opt::before {
@@ -56,11 +55,11 @@
 .mm-opt:hover::before,
 .mm-opt.is-key-selected::before {
     visibility: visible;
-    color: var(--diff-medium);
+    color: var(--accent);
 }
 
 .mm-opt.disabled {
-    color: #b8b8b8;
+    color: var(--comment);
     cursor: not-allowed;
 }
 
@@ -70,14 +69,14 @@
 
 .mm-foot {
     font-size: 6px;
-    color: #666;
+    color: var(--comment);
     margin-top: 6px;
 }
 
 /* ---------- REGISTRATION ---------- */
 #registration-screen {
     background: var(--gs-blue);
-    color: #fff;
+    color: var(--text);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -85,28 +84,38 @@
 }
 
 .reg-title {
-    font-size: 12px;
+    font-size: 15px;
     margin-bottom: 8px;
-    color: var(--gold);
+    color: var(--accent);
 }
 
 .reg-label {
-    font-size: 7px;
+    font-size: 9px;
     margin-bottom: 8px;
-    color: #cdd5ea;
+    color: var(--comment);
 }
 
 #name-input {
-    background: #fff;
-    color: #000;
-    border: 2px solid #888;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 2px solid var(--input-border);
     padding: 6px;
     font-family: 'GameFont', fantasy;
-    font-size: 11px;
+    font-size: 13px;
     text-transform: uppercase;
     width: 150px;
     text-align: center;
     outline: none;
+    position: relative;   /* keep the input above the enlarged sprites */
+    z-index: 3;
+}
+
+#name-input::placeholder {
+    color: var(--comment);
+}
+
+#name-input:focus {
+    border-color: var(--accent);
 }
 
 .color-picker {
@@ -115,39 +124,47 @@
     margin-bottom: 12px;
 }
 
+/* no boxes — just sprite + label */
 .color-opt {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
-    padding: 4px;
-    border: 2px solid transparent;
-    border-radius: 4px;
+    gap: 1px;
+    padding: 2px 3px 3px;
+    border: none;
+    background: none;
     cursor: pointer;
-    background: rgba(0, 0, 0, 0.15);
 }
 
 .color-opt span {
-    font-size: 6px;
-    color: #cdd5ea;
+    font-size: 8px;
+    color: var(--text);
 }
 
-.color-opt:hover,
-.color-opt.is-key-selected {
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.color-opt.is-key-selected {
-    border-color: var(--gold);
-    background: rgba(216, 176, 48, 0.18);
-}
-
+/* selection (click) and keyboard focus: bracket the label -> [ GREY ] */
+.color-opt.selected span,
 .color-opt.is-key-selected span {
-    color: var(--gold);
+    color: var(--accent);
+}
+
+.color-opt.selected span::before,
+.color-opt.is-key-selected span::before {
+    content: '[ ';
+}
+
+.color-opt.selected span::after,
+.color-opt.is-key-selected span::after {
+    content: ' ]';
 }
 
 .swatch-wizard {
-    --wizard-size: 40px;
+    --wizard-size: 80px;
+    margin-top: -14px;    /* sprite art sits low in its frame; crop the empty space */
+    margin-bottom: -16px;
+    transform: scale(1.5);           /* 1.5x bigger wizard sprites */
+    transform-origin: center bottom; /* grow upward so labels stay in place */
+    pointer-events: none;            /* don't let the enlarged sprite steal clicks
+                                        (selection still works via .color-opt) */
 }
 
 .reg-btns {
@@ -157,15 +174,15 @@
 }
 
 .reg-error {
-    font-size: 6px;
-    color: #ff8a7a;
+    font-size: 8px;
+    color: var(--red);
     margin-top: 10px;
 }
 
 /* ---------- DIFFICULTY MENU ---------- */
 #menu-screen {
-    background: linear-gradient(to bottom, #2a2140 0%, #181420 100%);
-    color: #fff;
+    background: linear-gradient(to bottom, var(--bg) 0%, var(--bg-alt) 100%);
+    color: var(--text);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -174,13 +191,13 @@
 
 .menu-title {
     font-size: 12px;
-    color: var(--gold);
+    color: var(--accent);
     margin-bottom: 4px;
 }
 
 .menu-greeting {
     font-size: 7px;
-    color: #cdd5ea;
+    color: var(--comment);
     margin-bottom: 12px;
 }
 
@@ -204,25 +221,30 @@
 
 .staff-opt:hover,
 .staff-opt.is-key-selected {
-    background: rgba(255, 255, 255, 0.08);
     transform: translateY(-2px);
 }
 
 .staff-label {
     font-size: 7px;
     letter-spacing: 1px;
+    color: var(--text);
+}
+
+.staff-opt:hover .staff-label,
+.staff-opt.is-key-selected .staff-label {
+    color: var(--accent);
 }
 
 .menu-foot {
     font-size: 7px;
-    color: #9aa6c8;
+    color: var(--comment);
     margin-top: 12px;
     cursor: pointer;
 }
 
 .menu-foot:hover,
 .menu-foot.is-key-selected {
-    color: #fff;
+    color: var(--accent);
 }
 
 .staff-img {
@@ -232,10 +254,10 @@
     image-rendering: pixelated;
 }
 
-/* ---------- ACCOUNT ---------- */
+/* ---------- ACCOUNT (merged from Eric, re-themed light) ---------- */
 #account-screen {
     background: var(--gs-blue);
-    color: #fff;
+    color: var(--text);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -245,20 +267,20 @@
 .acct-title {
     font-size: 12px;
     margin-bottom: 8px;
-    color: var(--gold);
+    color: var(--accent);
 }
 
 .acct-sub {
     font-size: 7px;
-    color: #cdd5ea;
+    color: var(--comment);
     margin-bottom: 8px;
     text-align: center;
 }
 
 #account-screen input {
-    background: #fff;
-    color: #000;
-    border: 2px solid #888;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 2px solid var(--input-border);
     padding: 6px;
     font-family: 'GameFont', fantasy;
     font-size: 9px;
@@ -270,9 +292,8 @@
     display: block;
 }
 
-#account-screen input::placeholder {
-    color: #999;
-}
+#account-screen input::placeholder { color: var(--comment); }
+#account-screen input:focus { border-color: var(--accent); }
 
 .acct-btns {
     display: flex;
@@ -284,7 +305,7 @@
 
 .acct-divider {
     font-size: 6px;
-    color: #9aa6c8;
+    color: var(--comment);
     margin: 4px 0 8px;
     text-align: center;
 }
@@ -296,20 +317,18 @@
     align-items: center;
 }
 
-.acct-oauth-btn {
-    font-size: 7px;
-}
+.acct-oauth-btn { font-size: 7px; }
 
 .acct-note {
     font-size: 6px;
-    color: #cdd5ea;
+    color: var(--comment);
     margin-top: 8px;
     text-align: center;
 }
 
 .acct-error {
     font-size: 6px;
-    color: #ff8a7a;
+    color: var(--red);
     margin-top: 10px;
     text-align: center;
     max-width: 170px;
@@ -317,7 +336,7 @@
 
 .acct-email-display {
     font-size: 8px;
-    color: var(--gold);
+    color: var(--accent);
     margin-bottom: 6px;
     text-align: center;
     word-break: break-all;
@@ -326,7 +345,7 @@
 
 .acct-rank-note {
     font-size: 6px;
-    color: #cdd5ea;
+    color: var(--comment);
     margin-bottom: 10px;
     text-align: center;
     max-width: 170px;
@@ -334,12 +353,12 @@
 
 .acct-foot {
     font-size: 7px;
-    color: #9aa6c8;
+    color: var(--comment);
     margin-top: 14px;
     cursor: pointer;
 }
 
 .acct-foot:hover,
 .acct-foot.is-key-selected {
-    color: #fff;
+    color: var(--accent);
 }

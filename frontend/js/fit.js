@@ -7,14 +7,17 @@
     'use strict';
 
     var BASE_W = 400;
-    var BASE_H = 380;
+    var BASE_H = 260;
     var MIN_SCALE = 1.4;
     var MAX_SCALE = 4;
-    var GAP = 20;      /* must match #game-container gap */
-    var PADDING = 40;  /* #game-container padding 20px each side */
 
     function clamp(v, lo, hi) {
         return Math.min(hi, Math.max(lo, v));
+    }
+
+    function px(value) {
+        var n = parseFloat(value);
+        return Number.isFinite(n) ? n : 0;
     }
 
     function sidePanelWidth() {
@@ -22,40 +25,30 @@
         return Math.min(420, Math.max(280, window.innerWidth * 0.26));
     }
 
-    /* The side panel is hidden until the first argument produces citations.
-       It starts hidden (class 'hidden'/'is-hidden' -> display:none) and
-       battle.js reveals it by removing that class + dispatching 'resize'.
-       Reserve its width ONLY while it is actually laid out (visible). */
-    function panelVisible() {
-        var panel = document.getElementById('side-panel');
-        if (!panel) {
-            return false;
-        }
-        if (panel.classList.contains('hidden') ||
-            panel.classList.contains('is-hidden')) {
-            return false;
-        }
-        /* offsetParent is null when the element (or an ancestor) is display:none */
-        if (panel.offsetParent === null && panel.offsetWidth === 0) {
-            return false;
-        }
-        return getComputedStyle(panel).display !== 'none';
-    }
-
     function fit() {
+        var container = document.getElementById('game-container');
         var gb = document.getElementById('game-boy');
         var wrap = document.getElementById('gb-wrap');
-        if (!gb || !wrap) {
+        var frame = document.getElementById('gb-frame');
+        if (!container || !gb || !wrap || !frame) {
             return;
         }
 
-        /* Center across the FULL viewport when the panel is hidden (reserve 0);
-           reserve the panel's width + gap only when it is visible. */
-        var reserved = panelVisible()
-            ? (sidePanelWidth() + GAP + PADDING)
-            : PADDING;
-        var availW = window.innerWidth - reserved;
-        var availH = window.innerHeight - PADDING;
+        var layout = getComputedStyle(container);
+        var frameStyle = getComputedStyle(frame);
+        var horizontalPadding = px(layout.paddingLeft) + px(layout.paddingRight);
+        var verticalPadding = px(layout.paddingTop) + px(layout.paddingBottom);
+        var gap = px(layout.columnGap || layout.gap);
+        var frameChromeX = px(frameStyle.paddingLeft) + px(frameStyle.paddingRight)
+            + px(frameStyle.borderLeftWidth) + px(frameStyle.borderRightWidth);
+        var frameChromeY = px(frameStyle.paddingTop) + px(frameStyle.paddingBottom)
+            + px(frameStyle.borderTopWidth) + px(frameStyle.borderBottomWidth);
+        var viewportW = container.clientWidth;
+        var viewportH = container.clientHeight;
+
+        var reserved = sidePanelWidth() + gap + horizontalPadding + frameChromeX;
+        var availW = viewportW - reserved;
+        var availH = viewportH - verticalPadding - frameChromeY;
 
         var s = clamp(
             Math.min(availW / BASE_W, availH / BASE_H),
@@ -66,6 +59,12 @@
         gb.style.transform = 'scale(' + s + ')';
         wrap.style.width = (BASE_W * s) + 'px';
         wrap.style.height = (BASE_H * s) + 'px';
+
+        /* match the side panel height to the framed game screen */
+        var side = document.getElementById('side-panel');
+        if (frame && side) {
+            side.style.height = frame.offsetHeight + 'px';
+        }
     }
 
     window.addEventListener('resize', fit);

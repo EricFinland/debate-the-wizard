@@ -1,5 +1,7 @@
 /* ========================================
-   BASE - Variables, Reset, Game Boy Frame
+   BASE - Variables, Reset, Frame
+   Layout: Eric's responsive fit.js canvas + side panel row.
+   Theme:  my Tokyo Night (dark frame outside / light game screen inside).
    ======================================== */
 
 @font-face {
@@ -11,20 +13,36 @@
 }
 
 :root {
-    --screen-bg: #ffffff;
-    --ui-border: #202020;
-    --hp-green: #48c050;
-    --hp-yellow: #d8b030;
-    --hp-red: #c83828;
-    --gs-black: #181818;
-    --gs-blue: #283048;
-    --gold: #d8b030;
+    /* ---- Tokyo Night NIGHT (dark) — frame / outside the screen ---- */
+    --bg: #1a1b26;
+    --bg-alt: #16161d;
+    --text: #a9b1d6;
+    --accent: #7aa2f7;
+    --comment: #565f89;
+    --headers: #c0caf5;
+    --warn: #e0af68;
+    --separator: #2f334d;
+    --red: #f7768e;
+    --input-bg: #16161d;
+    --input-border: #414868;
 
-    /* difficulty signature colors */
-    --diff-easy: #48c050;
-    --diff-medium: #c83828;
-    --diff-hard: #8a8a8a;
-    --diff-impossible: #8a4fd0;
+    /* game semantic aliases mapped onto the dark palette */
+    --screen-bg: var(--bg);
+    --ui-border: var(--separator);
+    --gold: var(--warn);
+    --gs-black: var(--bg);
+    --gs-blue: var(--bg-alt);
+
+    --hp-green: #9ece6a;
+    --hp-yellow: #e0af68;
+    --hp-red: var(--red);
+
+    --diff-easy: #9ece6a;
+    --diff-medium: var(--red);
+    --diff-hard: var(--comment);
+    --diff-impossible: #bb9af7;
+
+    --term-font: 'DM Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 * {
@@ -32,62 +50,120 @@
 }
 
 body {
-    background-color: #111;
+    background-color: var(--bg);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
     font-family: 'GameFont', fantasy;
+    color: var(--text);
     user-select: none;
     overflow: hidden;
 }
 
+/* container is a row: [ framed game screen ] [ side panel ] */
 #game-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    gap: clamp(24px, 3vw, 40px);
     width: 100vw;
     height: 100vh;
-    padding: 20px;
+    padding: clamp(32px, 4vw, 56px);
 }
 
-/* Side panel show-after-cast:
-   #side-panel starts hidden and battle.js reveals it only after the first
-   argument produces citations (and re-hides on duel reset / leaving battle).
-   When hidden it is fully removed from layout so #game-container centers the
-   Game Boy across the whole viewport (see js/fit.js panelVisible()).
-   battle.js must add/remove the 'hidden' class (and dispatch a 'resize'). */
-#side-panel.hidden,
-#side-panel.is-hidden {
-    display: none !important;
+#page-credit {
+    position: fixed;
+    right: clamp(16px, 3vw, 32px);
+    bottom: clamp(10px, 2vw, 20px);
+    z-index: 30;
+    font-family: var(--term-font);
+    font-size: 20px;
+    line-height: 1.4;
+    color: var(--comment);
+    text-align: right;
+    pointer-events: none;
 }
 
-/* wrapper that reserves real layout space for the scaled canvas */
+/* bordered frame with a 10px gap around the screen; carries the title.
+   Sizes to its content (gb-wrap), so it doesn't fight fit.js. */
+#gb-frame {
+    position: relative;
+    flex: 0 0 auto;
+    padding: 16px;                       /* wider gap between screen and border */
+    border: 2px solid var(--separator);  /* thicker border line */
+    /* concentric corners: outer radius = inner(8) + padding(16) */
+    border-radius: 12px;
+    background: transparent;
+}
+
+/* wrapper reserves real layout space for the scaled canvas (js/fit.js) */
 #gb-wrap {
     position: relative;
     flex: 0 0 auto;
     /* width/height set by js/fit.js to 400*s / 260*s */
 }
 
+/* the LCD screen (game viewport) — INSIDE uses the LIGHT palette */
 #game-boy {
+    /* Tokyo Night DAY (light) — applies to everything inside the screen */
+    --bg: #e1e2e7;
+    --bg-alt: #d0d5e3;
+    --text: #3760bf;
+    --accent: #2e7de9;
+    --comment: #848cb5;
+    --headers: #006a83;
+    --warn: #8c6c3e;
+    --separator: #a8aecb;
+    --red: #f52a65;
+    --input-bg: #d0d5e3;
+    --input-border: #a8aecb;
+
+    --screen-bg: var(--bg);
+    --ui-border: var(--separator);
+    --gold: var(--accent);
+    --gs-black: var(--bg);
+    --gs-blue: var(--bg-alt);
+    --hp-green: #4f9d3a;
+    --hp-yellow: #c7902f;
+    --hp-red: var(--red);
+    --diff-easy: #4f9d3a;
+    --diff-medium: var(--red);
+    --diff-hard: var(--comment);
+    --diff-impossible: #7a4fd0;
+
     width: 400px;
-    height: 380px;
+    height: 260px;
     background-color: var(--screen-bg);
-    border: 4px solid #888;
-    border-radius: 4px;
+    border-radius: 4px;          /* rounded screen (border lives on #gb-frame) */
     position: absolute;
     top: 0;
     left: 0;
     overflow: hidden;
     image-rendering: pixelated;
     transform-origin: top left;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.55);
     /* transform: scale(s) set by js/fit.js */
 }
 
-/* Side panel styling lives in css/debate.css (#side-panel + #side-citations). */
+/* terminal-style title sitting on the screen's top border */
+.term-label {
+    position: absolute;
+    top: 0;
+    margin-left: 20px;
+    z-index: 5;
+    transform: translateY(-50%);
+    padding: 0 8px;
+    background: var(--bg);            /* dark notch over the border line */
+    color: var(--accent);
+    font-family: var(--term-font);
+    font-weight: 500;
+    font-size: 20px;
+    letter-spacing: -0.02ch;
+    white-space: nowrap;
+    pointer-events: none;
+}
 
 /* --- Screen system --- */
 .screen {
@@ -102,7 +178,7 @@ body {
     display: none !important;
 }
 
-/* --- LCD scanline filter --- */
+/* --- LCD scanline filter (subtle, tuned for the light screen) --- */
 #lcd-overlay {
     position: absolute;
     top: 0;
@@ -112,27 +188,30 @@ body {
     pointer-events: none;
     z-index: 999;
     background:
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.08) 50%),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.015), rgba(0, 0, 255, 0.04));
-    background-size: 100% 2px, 2px 100%;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4);
+        linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(80, 90, 120, 0.05) 50%);
+    background-size: 100% 2px;
+    box-shadow: inset 0 0 24px rgba(120, 130, 160, 0.16);
 }
 
-/* --- shared pixel button --- */
+/* --- solid bracket button (my design) --- */
 .pixel-btn {
-    background: white;
-    color: black;
-    border: 2px solid #888;
-    padding: 8px 10px;
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 0;
+    padding: 8px 14px;
     font-size: 8px;
     font-family: 'GameFont', fantasy;
     cursor: pointer;
-    transition: background 0.1s;
+    transition: background 0.15s ease;
 }
 
-.pixel-btn:hover {
-    background: var(--gold);
-    color: #000;
+.pixel-btn::before { content: '[ '; }
+.pixel-btn::after  { content: ' ]'; }
+
+.pixel-btn:hover,
+.pixel-btn.is-key-selected {
+    background: #1f6fd6;
 }
 
 /* --- blink --- */
@@ -144,48 +223,4 @@ body {
     50% {
         opacity: 0;
     }
-}
-
-/* --- Sponsor credits (fixed bottom-right) --- */
-#sponsors {
-    position: fixed;
-    bottom: 10px;
-    right: 12px;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'GameFont', fantasy;
-    pointer-events: none;
-}
-
-#sponsors .sponsors-label {
-    font-size: 8px;
-    letter-spacing: 1px;
-    color: #8a93b0;
-}
-
-#sponsors .sponsor-chip {
-    pointer-events: auto;
-    font-size: 9px;
-    text-decoration: none;
-    padding: 5px 9px;
-    border: 2px solid #888;
-    border-radius: 4px;
-    background: #181822;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
-}
-
-#sponsors .sponsor-you {
-    color: #e9c46a;
-    border-color: #e9c46a;
-}
-
-#sponsors .sponsor-insforge {
-    color: #a06bff;
-    border-color: #a06bff;
-}
-
-#sponsors .sponsor-chip:hover {
-    filter: brightness(1.25);
 }
