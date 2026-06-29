@@ -48,12 +48,29 @@ async function dbInsert(table: string, rows: unknown[]): Promise<any[]> {
   return res.json();
 }
 
+/** Count matching rows (best-effort; returns 0 on any read failure so limits never hard-break creation). */
+async function dbCount(table: string, query: string): Promise<number> {
+  try {
+    const res = await fetch(`${DB}/${table}?${query}`, { headers: H });
+    if (!res.ok) return 0;
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch { return 0; }
+}
+
+// ---- abuse protection / rate-limit knobs (env-overridable) ----
+const num = (k: string, d: number) => Number(Deno.env.get(k) ?? "") || d;
+const GUEST_FIGHT_LIMIT = num("GUEST_FIGHT_LIMIT", 1);      // new/guest accounts: 1 free fight
+const VERIFIED_FIGHT_LIMIT = num("VERIFIED_FIGHT_LIMIT", 25); // OAuth-verified accounts
+const GLOBAL_DAILY_LIMIT = num("GLOBAL_DAILY_LIMIT", 300);  // hard token safety net across everyone / 24h
+const COOLDOWN_SECONDS = num("COOLDOWN_SECONDS", 12);       // min gap between a player's duels
+
 export default async function (req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   if (!BASE || !KEY) return json({ error: "INSFORGE_API_URL / INSFORGE_API_KEY not configured." }, 500);
 
-  let body: { topic?: string; topic_id?: string; rounds_total?: number; difficulty?: string; host_user_id?: string };
+  let body: { topic?: string; topic_id?: string; rounds_total?: number; difficulty?: string; host_user_id?: string; email_verified?: boolean };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON body." }, 400); }
 
   const seed = body.topic_id ? SEED_TOPICS[body.topic_id] : undefined;
@@ -65,6 +82,38 @@ export default async function (req: Request): Promise<Response> {
   const DIFFICULTIES = ["novice", "adept", "archmage", "impossible"];
   const difficulty = DIFFICULTIES.includes(String(body.difficulty)) ? String(body.difficulty) : "adept";
   const host_user_id = typeof body.host_user_id === "string" && body.host_user_id.trim() ? body.host_user_id.trim() : null;
+  const verified = body.email_verified === true;
+
+  // ---- rate limiting / abuse protection (protect API tokens) ----
+  // 1. Global daily cap: identity-independent hard ceiling so no amount of fake
+  //    accounts can drain the API budget.
+  const since24 = new Date(Date.now() - 86400000).toISOString();
+  const globalRecent = await dbCount("rooms", `created_at=gte.${since24}&select=id&limit=${GLOBAL_DAILY_LIMIT + 1}`);
+  if (globalRecent >= GLOBAL_DAILY_LIMIT) {
+    return json({ error: "The wizard is resting. The daily duel limit was reached. Please try again later.", code: "global_limit" }, 503);
+  }
+
+  // 2. Per-account limits (keyed on host_user_id).
+  if (host_user_id) {
+    const id = encodeURIComponent(host_user_id);
+    // brief cooldown to stop rapid-fire spam
+    const sinceCd = new Date(Date.now() - COOLDOWN_SECONDS * 1000).toISOString();
+    const burst = await dbCount("rooms", `host_user_id=eq.${id}&created_at=gte.${sinceCd}&select=id&limit=1`);
+    if (burst > 0) {
+      return json({ error: "Slow down, mage. Wait a few seconds before starting another duel.", code: "cooldown" }, 429);
+    }
+    // total fight cap: new/guest accounts get 1 free fight; verified accounts get more
+    const cap = verified ? VERIFIED_FIGHT_LIMIT : GUEST_FIGHT_LIMIT;
+    const mine = await dbCount("rooms", `host_user_id=eq.${id}&select=id&limit=${cap + 1}`);
+    if (mine >= cap) {
+      return json({
+        error: verified
+          ? "You have reached your duel limit. The wizard needs to rest."
+          : "You have used your free duel. Sign in with Google or GitHub to challenge the wizard again.",
+        code: verified ? "limit" : "guest_limit",
+      }, 429);
+    }
+  }
 
   try {
     const [room] = await dbInsert("rooms", [{ topic, status: "active", rounds_total, difficulty, host_user_id }]);

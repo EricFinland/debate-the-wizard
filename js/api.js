@@ -104,12 +104,22 @@
          * @param {{topic:string, difficulty:string, name?:string}} opts
          *        difficulty accepts pixel (easy/medium/hard/impossible) or backend names.
          */
-        createRoom: function (opts) {
+        createRoom: async function (opts) {
             opts = opts || {};
+            // Key the fight cap on the ACCOUNT when signed in, else the guest device id.
+            var uid = getClientId();
+            var verified = false;
+            try {
+                if (window.Auth) {
+                    var u = await window.Auth.getUser();
+                    if (u && u.id) { uid = u.id; verified = !!u.emailVerified; }
+                }
+            } catch (e) { /* guest */ }
             return post('create-room', {
                 topic: opts.topic,
                 difficulty: mapDifficulty(opts.difficulty),
-                host_user_id: getClientId()
+                host_user_id: uid,
+                email_verified: verified
             });
         },
 

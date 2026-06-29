@@ -595,9 +595,12 @@ const Battle = (() => {
             }
             if (!roomId) throw new Error('no room id');
         } catch (err) {
-            say('The arcane connection wavered... try stating your claim again.');
+            // Surface the server message (rate limit / free-duel-used / daily cap)
+            // and return to the menu instead of looping the claim prompt.
+            say((err && err.message) ? err.message : 'The arcane connection wavered. Try again.');
             await waitForClick();
-            return beginDebate();
+            try { hideSidePanel(); } catch (e) { /* ignore */ }
+            return ScreenManager.show('MENU');
         }
 
         // persistent reminder of what the player is defending this whole duel
