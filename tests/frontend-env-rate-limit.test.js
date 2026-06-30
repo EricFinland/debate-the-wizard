@@ -4,6 +4,9 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const index = fs.readFileSync(path.join(root, 'frontend', 'index.html'), 'utf8');
 const config = fs.readFileSync(path.join(root, 'frontend', 'js', 'config.js'), 'utf8');
+const utils = fs.readFileSync(path.join(root, 'frontend', 'js', 'core', 'utils.js'), 'utf8');
+const http = fs.readFileSync(path.join(root, 'frontend', 'js', 'services', 'http.js'), 'utf8');
+const apiSupport = fs.readFileSync(path.join(root, 'frontend', 'js', 'services', 'api-support.js'), 'utf8');
 const api = fs.readFileSync(path.join(root, 'frontend', 'js', 'services', 'api.js'), 'utf8');
 const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'game', 'battle.js'), 'utf8');
 const generator = fs.readFileSync(path.join(root, 'frontend', 'scripts', 'generate-env.js'), 'utf8');
@@ -15,7 +18,29 @@ function assert(condition, message) {
     }
 }
 
-assert(index.indexOf('js/env.js') < index.indexOf('js/config.js'), 'env.js should load before config.js');
+const envScript = index.indexOf('js/env.js');
+const configScript = index.indexOf('js/config.js');
+const utilsScript = index.indexOf('js/core/utils.js');
+const httpScript = index.indexOf('js/services/http.js');
+const storageScript = index.indexOf('js/core/storage.js');
+const apiSupportScript = index.indexOf('js/services/api-support.js');
+const apiScript = index.indexOf('js/services/api.js');
+
+assert(envScript !== -1, 'index should load env.js');
+assert(configScript !== -1, 'index should load config.js');
+assert(utilsScript !== -1, 'index should load utils.js');
+assert(httpScript !== -1, 'index should load http.js');
+assert(storageScript !== -1, 'index should load storage.js');
+assert(apiSupportScript !== -1, 'index should load api-support.js');
+assert(apiScript !== -1, 'index should load api.js');
+assert(envScript < configScript, 'env.js should load before config.js');
+assert(configScript < utilsScript, 'utils.js should load after config.js');
+assert(utilsScript < httpScript, 'http.js should load after utils.js');
+assert(httpScript < apiScript, 'http.js should load before api.js');
+assert(utilsScript < storageScript, 'utils.js should load before storage.js');
+assert(utilsScript < apiScript, 'utils.js should load before api.js');
+assert(httpScript < apiSupportScript, 'http.js should load before api-support.js');
+assert(apiSupportScript < apiScript, 'api-support.js should load before api.js');
 assert(config.includes("requireEnv('INSFORGE_API_URL')"), 'config should require INSFORGE_API_URL');
 assert(config.includes("requireEnv('INSFORGE_SDK_URL')"), 'config should require INSFORGE_SDK_URL');
 assert(!config.includes('atjgzcv9'), 'config should not fall back to a stale InsForge project');
@@ -27,7 +52,19 @@ assert(generator.includes("'INSFORGE_API_URL'"), 'generator should expose INSFOR
 assert(generator.includes("'INSFORGE_ANON_KEY'"), 'generator should expose optional INSFORGE_ANON_KEY');
 assert(!generator.includes("'INSFORGE_API_KEY'"), 'generator must not expose INSFORGE_API_KEY');
 
-assert(api.includes('err.status = status'), 'API errors should preserve HTTP status');
+assert(utils.includes('window.AppUtils'), 'utils should expose window.AppUtils');
+assert(utils.includes('makeUuid'), 'utils should expose makeUuid');
+assert(utils.includes('safeStorageGet'), 'utils should expose safeStorageGet');
+assert(http.includes('window.JsonHttp'), 'http should expose window.JsonHttp');
+assert(http.includes('requestJson'), 'http should expose requestJson');
+assert(http.includes('postJson'), 'http should expose postJson');
+assert(apiSupport.includes('window.ApiSupport'), 'api-support should expose window.ApiSupport');
+assert(apiSupport.includes('err.status = status'), 'API support errors should preserve HTTP status');
+assert(apiSupport.includes('httpError(slug, err.status)'), 'API support should map HTTP status errors to slug errors');
+assert(!api.includes('function getClientId'), 'api.js should not define getClientId');
+assert(!api.includes('function mapDifficulty'), 'api.js should not define mapDifficulty');
+assert(!api.includes('function httpError'), 'api.js should not define httpError');
+assert(!api.includes('clientId:'), 'api.js should not expose clientId');
 assert(battle.includes('err.status === 429'), 'battle should handle 429 rate limits explicitly');
 assert(battle.includes('let creatingRoom = false'), 'battle should guard duplicate room creation');
 

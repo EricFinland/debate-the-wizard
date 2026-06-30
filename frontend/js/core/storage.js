@@ -9,11 +9,23 @@ const Storage = (() => {
     if (!config || !config.storageKeys || !config.storageKeys.gameSave) {
         throw new Error('Storage configuration missing: load js/config.js before js/core/storage.js');
     }
+    const utils = window.AppUtils;
+    if (!utils) {
+        throw new Error('Storage utilities missing: load js/core/utils.js before js/core/storage.js');
+    }
     const KEY = config.storageKeys.gameSave;
+
+    function sessionStore() {
+        try {
+            return sessionStorage;
+        } catch (e) {
+            return null;
+        }
+    }
 
     function load() {
         try {
-            const raw = sessionStorage.getItem(KEY);
+            const raw = utils.safeStorageGet(sessionStore(), KEY);
             return raw ? JSON.parse(raw) : null;
         } catch (e) {
             return null;
@@ -23,18 +35,12 @@ const Storage = (() => {
     function save(data) {
         const current = load() || {};
         const merged = { ...current, ...data };
-        try {
-            sessionStorage.setItem(KEY, JSON.stringify(merged));
-        } catch (e) {
-            /* storage unavailable - game still works for this session in-memory */
-        }
+        utils.safeStorageSet(sessionStore(), KEY, JSON.stringify(merged));
         return merged;
     }
 
     function clear() {
-        try {
-            sessionStorage.removeItem(KEY);
-        } catch (e) { /* ignore */ }
+        utils.safeStorageRemove(sessionStore(), KEY);
     }
 
     function hasSave() {
