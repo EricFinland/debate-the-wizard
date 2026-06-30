@@ -65,6 +65,7 @@ const Battle = (() => {
     let lastCitations = [];      // citations from the most recent turn (for PACK)
     let lastPlayerArg = '';      // fed to the wizard turn as opponent_argument
     let argResolver = null;      // resolver while waiting on the text input
+    let creatingRoom = false;    // prevents duplicate room creation requests
 
     // latest round result, rendered into #round-result for both sides
     let roundResult = { player: null, wizard: null };
@@ -512,6 +513,7 @@ const Battle = (() => {
         awaitingContinue = null;
         argResolver = null;
         busy = false;
+        creatingRoom = false;
 
         ScreenManager.show('BATTLE');
         beginDebate();
@@ -528,6 +530,8 @@ const Battle = (() => {
     /* shared duel-start path: open the room for `topic` then drop into the
        action menu. Used by both the typed claim and the pick-for-me side. */
     async function launchDuel(topic) {
+        if (creatingRoom) return;
+        creatingRoom = true;
         hideSidePicker();
         els.inputWrap.classList.add('hidden');
         say('Opening the arena around "' + topic + '"...');
@@ -543,10 +547,18 @@ const Battle = (() => {
             }
             if (!roomId) throw new Error('no room id');
         } catch (err) {
+            creatingRoom = false;
+            if (err && err.status === 429) {
+                say('The arena is overloaded. Wait a moment before stating your claim again.');
+                await delay(2500);
+                await waitForClick();
+                return beginDebate();
+            }
             say('The magic connection wavered... try stating your claim again.');
             await waitForClick();
             return beginDebate();
         }
+        creatingRoom = false;
 
         showTopicInHud(topic);
 

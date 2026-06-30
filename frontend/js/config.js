@@ -7,6 +7,16 @@
 (function () {
     'use strict';
 
+    var env = window.AppEnv || {};
+
+    function requireEnv(name) {
+        var value = env[name];
+        if (typeof value !== 'string' || !value.trim()) {
+            throw new Error('Missing frontend environment value: ' + name + '. Run npm run generate-env in frontend/.');
+        }
+        return value.trim();
+    }
+
     function deepFreeze(value) {
         if (!value || typeof value !== 'object') return value;
         Object.keys(value).forEach(function (key) {
@@ -17,9 +27,9 @@
 
     window.AppConfig = deepFreeze({
         insforge: {
-            baseUrl: 'https://atjgzcv9.us-east.insforge.app',
-            anonKey: 'anon_bc75b3318f511cc45a2b0c86dd7cd801cd1f46becdd93dd2fd6da1845748fa6e',
-            sdkUrl: 'https://esm.sh/@insforge/sdk@1.4.3'
+            baseUrl: requireEnv('INSFORGE_API_URL'),
+            anonKey: env.INSFORGE_ANON_KEY || '',
+            sdkUrl: requireEnv('INSFORGE_SDK_URL')
         },
         api: {
             functions: {

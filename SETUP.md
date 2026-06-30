@@ -45,6 +45,10 @@ npx @insforge/cli secrets add INSFORGE_API_KEY "<your-insforge-project-key>"
 npx @insforge/cli secrets list
 ```
 
+For local frontend runs, keep the same `INSFORGE_API_URL` in the repo-root
+`.env`. If you use auth/account features, also set the browser-safe
+`INSFORGE_ANON_KEY`. Do not put `INSFORGE_API_KEY` in browser config.
+
 ## 4. Deploy the functions
 
 Deploy all the orchestration / infra functions from the `backend/functions` directory:
@@ -90,8 +94,10 @@ The pixel-art Vanilla JS frontend does not require a build step. It communicates
 To run it locally:
 ```bash
 cd frontend
-npx serve . -p 3000
+npm run dev
 ```
 Open `http://localhost:3000` to play!
 
-Note: You may need to edit `insforge.baseUrl` inside `frontend/js/config.js` to point to your new project URL (`https://<PROJECT>.insforge.dev`).
+The dev/build scripts generate `frontend/js/env.js` from repo-root `.env.local`,
+`.env`, and deployment environment variables. The generated file is ignored by
+git and is loaded before `frontend/js/config.js`.

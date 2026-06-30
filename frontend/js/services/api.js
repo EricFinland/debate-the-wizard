@@ -67,6 +67,13 @@
         return difficulties.easy.backend;
     }
 
+    function httpError(slug, status) {
+        var err = new Error(slug + ' failed (' + status + ')');
+        err.status = status;
+        err.slug = slug;
+        return err;
+    }
+
     /** POST JSON to a function slug; throws a clean Error on non-OK. */
     function post(slug, body) {
         return fetch(BASE + '/functions/' + slug, {
@@ -75,7 +82,7 @@
             body: JSON.stringify(body || {})
         }).then(function (res) {
             if (!res.ok) {
-                throw new Error(slug + ' failed (' + res.status + ')');
+                throw httpError(slug, res.status);
             }
             return res.json();
         }).catch(function (err) {
@@ -89,7 +96,7 @@
         return fetch(BASE + '/functions/' + slug, { method: 'GET' })
             .then(function (res) {
                 if (!res.ok) {
-                    throw new Error(slug + ' failed (' + res.status + ')');
+                    throw httpError(slug, res.status);
                 }
                 return res.json();
             }).catch(function (err) {

@@ -58,7 +58,7 @@ The game is static. Serve the frontend folder and open it:
 
 ```bash
 cd frontend
-npx serve . -p 3000
+npm run dev
 ```
 
 It talks to the live InsForge backend, so no local backend is needed.

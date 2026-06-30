@@ -4,8 +4,12 @@
   "private": true,
   "description": "Debate the Wizard - pixel Game Boy battle frontend (static, no build)",
   "scripts": {
-    "dev": "npx -y http-server . -p 3000 -c-1",
-    "build": "echo \"static site - no build step\"",
-    "vercel-build": "echo \"static site - no build step\""
+    "generate-env": "node scripts/generate-env.js",
+    "dev": "npm run generate-env && npx -y http-server . -p 3000 -c-1",
+    "build": "npm run generate-env",
+    "vercel-build": "npm run generate-env"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2"
   }
 }

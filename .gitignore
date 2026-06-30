@@ -6,6 +6,7 @@ node_modules/
 .env
 .env.local
 *.local
+frontend/js/env.js
 
 # insforge link / local state
 .insforge/
