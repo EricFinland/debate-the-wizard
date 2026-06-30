@@ -14,9 +14,9 @@ echo "== health =="
 curl -sS "$(fn health)" | jq .
 
 echo
-echo "== create-room (seed topic) =="
+echo "== create-room =="
 ROOM=$(curl -sS -X POST "$(fn create-room)" -H "Content-Type: application/json" \
-  -d '{"topic_id":"nuclear-climate","rounds_total":1,"difficulty":"novice"}')
+  -d '{"topic":"Nuclear energy is the best tool we have for fighting climate change.","rounds_total":1,"difficulty":"novice"}')
 echo "$ROOM" | jq .
 ROOM_ID=$(echo "$ROOM" | jq -r '.room.id')
 

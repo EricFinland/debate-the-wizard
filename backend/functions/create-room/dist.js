@@ -45,18 +45,6 @@ function makeDb(base, key) {
 }
 
 // backend/functions/create-room/index.ts
-var SEED_TOPICS = {
-  "nuclear-climate": {
-    topic: "Nuclear energy is the best tool we have for fighting climate change.",
-    human_side_label: "FOR \u2014 nuclear is essential",
-    wizard_side_label: "AGAINST \u2014 renewables are the better bet"
-  },
-  "cars-transit": {
-    topic: "Cities should replace private cars with free public transit.",
-    human_side_label: "FOR \u2014 ban cars, fund transit",
-    wizard_side_label: "AGAINST \u2014 cars still matter"
-  }
-};
 var BASE = (env("INSFORGE_API_URL") || DEFAULT_BASE).replace(/\/+$/, "");
 var DATA = (env("INSFORGE_DATA_URL") || BASE).replace(/\/+$/, "");
 var KEY = env("INSFORGE_API_KEY");
@@ -71,9 +59,8 @@ async function index_default(req) {
   } catch {
     return json({ error: "Invalid JSON body." }, 400);
   }
-  const seed = body.topic_id ? SEED_TOPICS[body.topic_id] : void 0;
-  const topic = (seed?.topic ?? body.topic ?? "").trim();
-  if (!topic) return json({ error: "Provide 'topic' or a valid 'topic_id'." }, 400);
+  const topic = (body.topic ?? "").trim();
+  if (!topic) return json({ error: "Provide 'topic'." }, 400);
   const rounds_total = Math.max(1, Math.min(10, Number(body.rounds_total) || 5));
   const DIFFICULTIES = ["novice", "adept", "archmage", "impossible"];
   const difficulty = DIFFICULTIES.includes(String(body.difficulty)) ? String(body.difficulty) : "adept";
@@ -86,8 +73,7 @@ async function index_default(req) {
     ]);
     return json({
       room,
-      players,
-      topic_meta: seed ? { id: body.topic_id, ...seed } : { topic }
+      players
     });
   } catch (err) {
     return json({ error: String(err instanceof Error ? err.message : err) }, 500);

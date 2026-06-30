@@ -59,7 +59,6 @@ export interface Claim {
 export interface CreateRoomResponse {
   room: Room;
   players: Player[];
-  topic_meta: Record<string, unknown>;
 }
 
 export interface TurnResponse {

@@ -3,7 +3,7 @@
 //
 //   import { createDebateClient } from "../client";
 //   const api = createDebateClient(process.env.NEXT_PUBLIC_INSFORGE_URL!);
-//   const { room } = await api.createRoom({ topic_id: "nuclear-climate" });
+//   const { room } = await api.createRoom({ topic: "Nuclear energy is the best tool we have for fighting climate change." });
 //   const turn = await api.submitArgument({ room_id: room.id, round_no: 1, argument });
 //
 // Realtime: subscribe to DB-change events on `claims` / `players` filtered by
@@ -59,7 +59,7 @@ export function createDebateClient(baseUrl: string, opts: DebateClientOptions = 
   return {
     health: () => call<HealthResponse>("health", "GET"),
 
-    createRoom: (input: { topic?: string; topic_id?: string; rounds_total?: number }) =>
+    createRoom: (input: { topic: string; rounds_total?: number; difficulty?: string; host_user_id?: string }) =>
       call<CreateRoomResponse>("create-room", "POST", input),
 
     submitArgument: (input: { room_id: string; round_no: number; argument: string }) =>

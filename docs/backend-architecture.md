@@ -14,7 +14,7 @@ Because the `agent-workflow` evaluates both the player and the wizard in a singl
 
 ## Edge function inventory
 
-- **`create-room`** — `POST { topic? | topic_id?, rounds_total?, difficulty? }` → `{ room, players[A,B], topic_meta }`. Creates the room + both players.
+- **`create-room`** — `POST { topic, rounds_total?, difficulty?, host_user_id? }` → `{ room, players[A,B] }`. Creates the room + both players.
 - **`submit-argument`** — `POST { room_id, round_no, argument }` → `{ player_claim, wizard_claim, player_score, wizard_score, room, winner, explanation }`. Runs the core `agent-workflow` with history, evaluating the player's argument and synthesizing the wizard's rebuttal simultaneously. Persists both claims and updates scores.
 - **`get-room`** — `POST { room_id }` → `{ room, players, scores{A,B}, claims[](each with citations[]), winner }`. State for reconnect, spectating, and the recap.
 - **`leaderboard`** — `GET` → `{ leaderboard[] }`. Top human (side-A) scores with their topic.

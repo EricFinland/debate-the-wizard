@@ -26,10 +26,10 @@ Note your project URL: `https://<PROJECT>.insforge.app` (you'll need it below).
 
 ```bash
 npx @insforge/cli db migrations up --all
-npx @insforge/cli db tables                     # verify: rooms, players, claims, citations
+npx @insforge/cli db tables                     # verify: rooms, players, claims, citations, profiles
 ```
 
-The schema lives in `backend/migrations/`.
+The fresh demo schema is a single canonical migration in `backend/migrations/`.
 
 ## 3. Store the secrets
 
@@ -51,15 +51,15 @@ For local frontend runs, keep the same `INSFORGE_API_URL` in the repo-root
 
 ## 4. Deploy the functions
 
-Deploy all the orchestration / infra functions from the `backend/functions` directory:
+Deploy all the orchestration / infra functions from the bundled `dist.js` files:
 
 ```bash
-npx @insforge/cli functions deploy create-room     --file backend/functions/create-room/index.ts     --name "Create room"
-npx @insforge/cli functions deploy submit-argument --file backend/functions/submit-argument/index.ts --name "Submit argument"
-npx @insforge/cli functions deploy get-room        --file backend/functions/get-room/index.ts        --name "Get room"
-npx @insforge/cli functions deploy leaderboard     --file backend/functions/leaderboard/index.ts     --name "Leaderboard"
-npx @insforge/cli functions deploy record-match    --file backend/functions/record-match/index.ts    --name "Record match"
-npx @insforge/cli functions deploy health          --file backend/functions/health/index.ts          --name "Health"
+npx @insforge/cli functions deploy create-room     --file backend/functions/create-room/dist.js     --name "Create room"
+npx @insforge/cli functions deploy submit-argument --file backend/functions/submit-argument/dist.js --name "Submit argument"
+npx @insforge/cli functions deploy get-room        --file backend/functions/get-room/dist.js        --name "Get room"
+npx @insforge/cli functions deploy leaderboard     --file backend/functions/leaderboard/dist.js     --name "Leaderboard"
+npx @insforge/cli functions deploy record-match    --file backend/functions/record-match/dist.js    --name "Record match"
+npx @insforge/cli functions deploy health          --file backend/functions/health/dist.js          --name "Health"
 
 npx @insforge/cli functions list
 ```

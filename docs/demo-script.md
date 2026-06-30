@@ -42,11 +42,11 @@ Then go straight into the click-path.
 
 ### 0:00 — Pitch + pick the trap topic
 - Deliver the elevator pitch above.
-- On the topic picker, select the seed topic **`nuclear-climate`**:
+- On the topic picker, choose:
   *"Nuclear energy is the best tool we have for fighting climate change."*
 - You take **SIDE A (human)**: **FOR, nuclear is essential**.
   The wizard auto-takes **SIDE B**: **AGAINST, renewables are the better bet**.
-- Why this topic: it ships with a built-in factual trap. The tempting-but-false claim
+- Why this topic: it sets up a strong factual trap. The tempting-but-false claim
   is *"nuclear plants emit more CO2 over their lifecycle than coal."* You.com sources
   flatly contradict it, which sets up the money shot when the wizard reaches for it.
 
@@ -131,8 +131,8 @@ Stop and sell it:
 
 1. **Health first.** If the pre-flight `health` call shows any of
    `gateway/db/youcom` false, fix that secret before you present, don't debug on stage.
-2. **Pre-created room.** Create a `nuclear-climate` room a few minutes early so room
-   creation isn't on the critical path. Keep the `room_id`.
+2. **Pre-created room.** Create a room with the nuclear energy topic a few minutes
+   early so room creation isn't on the critical path. Keep the `room_id`.
 3. **Replay via get-room.** If live calls stall, `get-room { room_id }` returns full
    state, claims, citations, scores, and winner, for any room you ran earlier. Walk the
    recap from a room you already completed; the citation trail is just as strong.
@@ -148,6 +148,6 @@ Stop and sell it:
 
 ## One-line cheat sheet
 
-`nuclear-climate` -> argue FOR (clean, sourced, +10) -> trigger wizard -> wizard hits the
+nuclear energy topic -> argue FOR (clean, sourced, +10) -> trigger wizard -> wizard hits the
 trap -> Judge rules MISLEADING -5 with a You.com citation -> recap the full citation trail
 -> name both prizes.

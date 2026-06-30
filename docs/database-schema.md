@@ -1,6 +1,6 @@
 # Database schema
 
-Postgres on InsForge. Source of truth: [`migrations/20260628120000_init.sql`](../migrations/20260628120000_init.sql).
+Postgres on InsForge. Source of truth: [`migrations/20260628120000_init.sql`](../backend/migrations/20260628120000_init.sql).
 Apply with `npx @insforge/cli db migrations up --all`.
 
 ```
@@ -9,6 +9,8 @@ rooms
   topic         text not null
   status        text not null      lobby | active | finished   (default 'lobby')
   rounds_total  int  not null      default 5
+  difficulty    text not null      novice | adept | archmage | impossible (default 'adept')
+  host_user_id  text               optional frontend/client user id
   created_at    timestamptz        default now()
 
 players
@@ -29,6 +31,8 @@ claims
   points     int  not null      default 0
   scores     jsonb              { factual_accuracy, logic, evidence, persuasiveness }  (0-10 each)
   fallacies  jsonb not null     default '[]'  -- ["straw man", ...]
+  taunt      text               wizard flavor text for the turn
+  search_query text             query used for live grounding
   created_at timestamptz        default now()
 
 citations
@@ -37,9 +41,21 @@ citations
   title      text
   url        text
   snippet    text               the exact passage that grounded/contradicted the claim
+
+profiles
+  user_id      text pk
+  display_name text
+  avatar_url   text
+  wins         int not null      default 0
+  losses       int not null      default 0
+  ties         int not null      default 0
+  total_score  int not null      default 0
+  verified     boolean not null  default false
+  updated_at   timestamptz      default now()
 ```
 
-Indexes: `players(room_id)`, `claims(room_id)`, `claims(room_id, round_no)`, `citations(claim_id)`.
+Indexes: `players(room_id)`, `claims(room_id)`, `claims(room_id, round_no)`,
+`citations(claim_id)`, `profiles(total_score desc)`, `rooms(status)`.
 
 ## Notes
 - **Scoring:** `claims.points` stores the normalized judge total for that turn.
@@ -51,3 +67,5 @@ Indexes: `players(room_id)`, `claims(room_id)`, `claims(room_id, round_no)`, `ci
   source trail. `get-room` returns every claim with its citations attached.
 - **Frontend state:** the current frontend uses the `submit-argument` and `get-room`
   HTTP responses directly; the persisted rows remain the source of truth for recaps.
+- **Topics:** curated frontend topics are sent to `create-room` as plain text. The
+  database stores the chosen text in `rooms.topic`; there is no backend topic seed.
