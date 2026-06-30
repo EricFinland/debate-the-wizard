@@ -1,15 +1,8 @@
 const fs = require('fs');
-const path = require('path');
+const { assert, projectPath, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'base.css'), 'utf8');
-const backgroundPath = path.join(root, 'frontend', 'img', 'backgrounds', 'bg.jpeg');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const css = readProjectFile('frontend', 'css', 'base.css');
+const backgroundPath = projectPath('frontend', 'img', 'backgrounds', 'bg.jpeg');
 
 assert(!fs.existsSync(backgroundPath), 'removed background image should not remain in img/backgrounds/bg.jpeg');
 assert(!/body\s*\{[\s\S]*background-image:\s*url\('\.\.\/img\/backgrounds\/bg\.jpeg'\)/.test(css), 'body should not use the removed background image');

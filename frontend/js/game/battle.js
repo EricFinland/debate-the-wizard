@@ -659,10 +659,13 @@ const Battle = (() => {
 
         say('The crowd weighs your words...');
         let claim;
+        let wzClaim;
         try {
             const res = await Api.submitArgument(roomId, round, argument);
-            claim = res && res.claim ? res.claim : res;
-            showCitations((res && res.citations) || (claim && claim.citations) || []);
+            claim = res && res.player_claim ? res.player_claim : (res && res.claim ? res.claim : res);
+            wzClaim = res && res.wizard_claim ? res.wizard_claim : null;
+            if (res && res.room) roomId = res.room.id || roomId;
+            showCitations((res && res.player_citations) || (res && res.citations) || (claim && claim.citations) || []);
         } catch (err) {
             say('The magic connection wavered... cast your argument again.');
             await waitForClick();
@@ -675,13 +678,7 @@ const Battle = (() => {
 
         // ----- WIZARD TURN -----
         say(enemy.name + ' conjures a rebuttal...');
-        let wzClaim;
-        try {
-            const res = await Api.advanceWizard(roomId, round, lastPlayerArg);
-            wzClaim = res && res.claim ? res.claim : res;
-            showCitations((res && res.citations) || (wzClaim && wzClaim.citations) || []);
-        } catch (err) {
-            // wizard turn failed: don't punish the player, just move on
+        if (!wzClaim) {
             say('The ' + enemy.name + "'s spell sputtered out in the static...");
             await waitForClick();
             await advanceRound();

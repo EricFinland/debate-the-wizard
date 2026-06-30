@@ -119,12 +119,11 @@ Stop and sell it:
 
 **InsForge (one platform, agent-operated):**
 - Postgres (rooms, players, claims, citations) + edge functions (`create-room`,
-  `submit-argument`, `advance-wizard`, `judge-claim`, `get-room`, `leaderboard`, `health`)
-  + model gateway (Claude, via one OpenAI-compatible endpoint) + realtime (DB-change
-  subscriptions) + deploy, all on InsForge.
-- "The Judge and the wizard both reach Claude through InsForge's model gateway, one
-  bearer token, one endpoint. The same search+judge pipeline is built once and called
-  twice, for the player and the wizard."
+  `submit-argument`, `get-room`, `leaderboard`, `record-match`, `health`)
+  + model gateway (Claude, via one OpenAI-compatible endpoint) + deploy, all on InsForge.
+- "The whole round reaches Claude through InsForge's model gateway, one bearer token,
+  one endpoint. The same workflow checks the player's claim, writes the wizard's
+  rebuttal, and scores both sides in one call."
 
 ---
 

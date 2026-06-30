@@ -1,16 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'debate.css'), 'utf8');
-const baseCss = fs.readFileSync(path.join(root, 'frontend', 'css', 'base.css'), 'utf8');
-const fit = fs.readFileSync(path.join(root, 'frontend', 'js', 'core', 'fit.js'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const css = readProjectFile('frontend', 'css', 'debate.css');
+const baseCss = readProjectFile('frontend', 'css', 'base.css');
+const fit = readProjectFile('frontend', 'js', 'core', 'fit.js');
 
 assert(!/#side-panel\s*\{[\s\S]*transform:\s*scale\(4\)/.test(css), 'side panel should not use transform scale(4)');
 assert(css.includes('--side-panel-text-scale: 2.5'), 'side panel should define a 2.5x text scale');

@@ -7,7 +7,7 @@ Everything here is run from the repo root.
 
 - Node 18+ (`node --version`)
 - An InsForge account (https://insforge.dev) and a You.com Search API key (https://api.you.com)
-- `jq` for the curl test (optional but nice)
+- `jq` for the deployed backend smoke test
 
 ## 1. Create + link the InsForge project
 
@@ -20,7 +20,7 @@ npx @insforge/cli link --project-id <PROJECT_ID>
 npx @insforge/cli current                      # confirm user/org/project
 ```
 
-Note your project URL: `https://<PROJECT>.insforge.dev` (you'll need it below).
+Note your project URL: `https://<PROJECT>.insforge.app` (you'll need it below).
 
 ## 2. Apply the database schema
 
@@ -37,7 +37,7 @@ Keys live in InsForge Secret Manager — never in the repo or the browser.
 
 ```bash
 npx @insforge/cli secrets add YOUCOM_API_KEY   "<your-you.com-key>"
-npx @insforge/cli secrets add INSFORGE_API_URL "https://<PROJECT>.insforge.dev"
+npx @insforge/cli secrets add INSFORGE_API_URL "https://<PROJECT>.insforge.app"
 npx @insforge/cli secrets add INSFORGE_API_KEY "<your-insforge-project-key>"
 # optional overrides:
 # npx @insforge/cli secrets add JUDGE_MODEL   "anthropic/claude-3.5-sonnet"
@@ -64,15 +64,21 @@ npx @insforge/cli functions deploy health          --file backend/functions/heal
 npx @insforge/cli functions list
 ```
 
-Each is live at `https://<PROJECT>.insforge.dev/functions/<slug>`. Quick check:
+Each is live at `https://<PROJECT>.insforge.app/functions/<slug>`. Quick check:
 
 ```bash
-curl https://<PROJECT>.insforge.dev/functions/health
+curl https://<PROJECT>.insforge.app/functions/health
 ```
 
-## 5. Test with curl
+## 5. Test
 
-We include a local script to smoke test the AI workflow locally before hitting the live endpoints:
+Run the maintained static frontend checks from the repo root:
+
+```bash
+npm test
+```
+
+Smoke test the local AI workflow before hitting live endpoints:
 
 ```bash
 # Provide environment variables locally
@@ -82,10 +88,20 @@ export YOUCOM_API_KEY="..."
 export YOUCOM_SEARCH_URL="https://ydc-index.io/v1/search"
 export SEARCH_COUNT="6"
 
-./scripts/test-agent-workflow.sh "The moon landing was fake because NASA admitted the footage was staged."
+npm run smoke:agent -- "The moon landing was fake because NASA admitted the footage was staged."
 ```
 
 Expected: The workflow should extract the claims, search You.com, evaluate the reasoning, generate the AI rebuttal, and finally score both sides.
+
+Smoke test deployed InsForge functions:
+
+```bash
+BASE=https://<PROJECT>.insforge.app npm run smoke:backend
+```
+
+The deployed smoke test exercises `health`, `create-room`, `submit-argument`,
+`get-room`, and `leaderboard`. It intentionally does not call removed two-step
+turn endpoints.
 
 ## 6. Running the Frontend
 

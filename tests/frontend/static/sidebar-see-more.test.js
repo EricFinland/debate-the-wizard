@@ -1,15 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'debate.css'), 'utf8');
-const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'game', 'battle.js'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const css = readProjectFile('frontend', 'css', 'debate.css');
+const battle = readProjectFile('frontend', 'js', 'game', 'battle.js');
 
 assert(battle.includes("more.className = 'citation-more'"), 'sidebar citations should render a See More button');
 assert(battle.includes("more.textContent = 'See More...'"), 'See More button copy should match request');

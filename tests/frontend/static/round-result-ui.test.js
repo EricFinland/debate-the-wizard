@@ -1,15 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'game', 'battle.js'), 'utf8');
-const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'debate.css'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const battle = readProjectFile('frontend', 'js', 'game', 'battle.js');
+const css = readProjectFile('frontend', 'css', 'debate.css');
 
 assert(!battle.includes("const verb = data.dmgTo === 'self' ? '-' : '';"), 'self damage should not render with a negative sign');
 assert(battle.includes("data.dmgTo === 'self' ? 'TOOK ' : 'DEALT '"), 'damage label should distinguish taken vs dealt damage');

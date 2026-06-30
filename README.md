@@ -49,7 +49,24 @@ backend/agent-workflow/        Local TypeScript multi-agent debate workflow
 frontend/                      The pixel Game Boy vanilla JS static frontend
 docs/agent-workflow.md         Agent workflow diagram, responsibilities, and contracts
 docs/backend-architecture.md   Backend edge function contracts and API specs
+tests/frontend/static/         Zero-dependency frontend regression checks
+tests/smoke/                   Optional local/deployed smoke tests
 SETUP.md                       Init -> deploy -> test, step by step
+```
+
+## Test
+
+Run the maintained local checks from the repo root:
+
+```bash
+npm test
+```
+
+Optional smoke tests need local secrets or a deployed backend:
+
+```bash
+npm run smoke:agent -- "The moon landing was fake because NASA admitted the footage was staged."
+BASE=https://<PROJECT>.insforge.app npm run smoke:backend
 ```
 
 ## Run locally

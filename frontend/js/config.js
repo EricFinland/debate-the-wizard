@@ -35,7 +35,6 @@
             functions: {
                 createRoom: 'create-room',
                 submitArgument: 'submit-argument',
-                advanceWizard: 'advance-wizard',
                 getRoom: 'get-room',
                 leaderboard: 'leaderboard',
                 recordMatch: 'record-match'

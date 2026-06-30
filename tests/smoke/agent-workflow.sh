@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Smoke-test the local agent-workflow module.
 # Usage:
-#   ./scripts/test-agent-workflow.sh
-#   ./scripts/test-agent-workflow.sh "Your debate argument here"
+#   npm run smoke:agent
+#   npm run smoke:agent -- "Your debate argument here"
 set -euo pipefail
 
 if [[ -f .env ]]; then

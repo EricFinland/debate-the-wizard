@@ -1,13 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const battle = fs.readFileSync(path.resolve(__dirname, '..', 'frontend', 'js', 'game', 'battle.js'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const battle = readProjectFile('frontend', 'js', 'game', 'battle.js');
 
 assert(!battle.includes('The arcane connection wavered'), 'connection error should avoid ambiguous arcane copy');
 assert(battle.includes('The magic connection wavered... try stating your claim again.'), 'claim retry copy should use readable wording');

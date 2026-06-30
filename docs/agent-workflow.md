@@ -1,8 +1,8 @@
 # Evidence-Grounded Agent Workflow
 
-This document describes the local TypeScript agent workflow in `agent-workflow/`.
-It is separate from the deployed `functions/judge-claim` edge function, but uses the
-same core idea: debate decisions should be grounded in independent You.com evidence.
+This document describes the TypeScript agent workflow in `backend/agent-workflow/`.
+The deployed `submit-argument` edge function calls this workflow once per round to
+evaluate the player argument, generate the wizard rebuttal, and score both sides.
 
 ## Overview
 
@@ -254,7 +254,7 @@ SEARCH_COUNT=6
 Run:
 
 ```bash
-./scripts/test-agent-workflow.sh "The moon landing was fake because NASA admitted the footage was staged."
+npm run smoke:agent -- "The moon landing was fake because NASA admitted the footage was staged."
 ```
 
 Expected output should include:

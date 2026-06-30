@@ -1,22 +1,17 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readJsonFile, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const index = fs.readFileSync(path.join(root, 'frontend', 'index.html'), 'utf8');
-const config = fs.readFileSync(path.join(root, 'frontend', 'js', 'config.js'), 'utf8');
-const utils = fs.readFileSync(path.join(root, 'frontend', 'js', 'core', 'utils.js'), 'utf8');
-const http = fs.readFileSync(path.join(root, 'frontend', 'js', 'services', 'http.js'), 'utf8');
-const apiSupport = fs.readFileSync(path.join(root, 'frontend', 'js', 'services', 'api-support.js'), 'utf8');
-const api = fs.readFileSync(path.join(root, 'frontend', 'js', 'services', 'api.js'), 'utf8');
-const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'game', 'battle.js'), 'utf8');
-const generator = fs.readFileSync(path.join(root, 'frontend', 'scripts', 'generate-env.js'), 'utf8');
-const pkg = JSON.parse(fs.readFileSync(path.join(root, 'frontend', 'package.json'), 'utf8'));
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const index = readProjectFile('frontend', 'index.html');
+const config = readProjectFile('frontend', 'js', 'config.js');
+const utils = readProjectFile('frontend', 'js', 'core', 'utils.js');
+const http = readProjectFile('frontend', 'js', 'services', 'http.js');
+const apiSupport = readProjectFile('frontend', 'js', 'services', 'api-support.js');
+const api = readProjectFile('frontend', 'js', 'services', 'api.js');
+const battle = readProjectFile('frontend', 'js', 'game', 'battle.js');
+const client = readProjectFile('backend', 'client', 'index.ts');
+const clientTypes = readProjectFile('backend', 'client', 'types.ts');
+const generator = readProjectFile('frontend', 'scripts', 'generate-env.js');
+const rootPkg = readJsonFile('package.json');
+const pkg = readJsonFile('frontend', 'package.json');
 
 const envScript = index.indexOf('js/env.js');
 const configScript = index.indexOf('js/config.js');
@@ -47,6 +42,9 @@ assert(!config.includes('atjgzcv9'), 'config should not fall back to a stale Ins
 assert(!config.includes('anon_bc75'), 'config should not fall back to a hardcoded anon key');
 assert(pkg.scripts.dev.includes('npm run generate-env'), 'dev script should generate env.js before serving');
 assert(pkg.scripts['vercel-build'].includes('generate-env'), 'Vercel build should generate env.js');
+assert(rootPkg.scripts.test === 'npm run test:frontend', 'root npm test should run the maintained frontend checks');
+assert(rootPkg.scripts['smoke:agent'].includes('tests/smoke/agent-workflow.sh'), 'root smoke:agent should use the maintained smoke script');
+assert(rootPkg.scripts['smoke:backend'].includes('tests/smoke/backend-flow.sh'), 'root smoke:backend should use the maintained smoke script');
 
 assert(generator.includes("'INSFORGE_API_URL'"), 'generator should expose INSFORGE_API_URL');
 assert(generator.includes("'INSFORGE_ANON_KEY'"), 'generator should expose optional INSFORGE_ANON_KEY');
@@ -65,6 +63,12 @@ assert(!api.includes('function getClientId'), 'api.js should not define getClien
 assert(!api.includes('function mapDifficulty'), 'api.js should not define mapDifficulty');
 assert(!api.includes('function httpError'), 'api.js should not define httpError');
 assert(!api.includes('clientId:'), 'api.js should not expose clientId');
+assert(!config.includes('advance-wizard'), 'frontend config should not expose removed advance-wizard endpoint');
+assert(!api.includes('advanceWizard'), 'frontend API should not expose removed advanceWizard helper');
+assert(!battle.includes('Api.advanceWizard'), 'battle should resolve rounds through submitArgument only');
+assert(!client.includes('advanceWizard'), 'typed backend client should not expose removed advanceWizard helper');
+assert(!client.includes('judgeClaim'), 'typed backend client should not expose removed judgeClaim helper');
+assert(!clientTypes.includes('JudgeResult'), 'typed backend client should not expose removed judge-claim response type');
 assert(battle.includes('err.status === 429'), 'battle should handle 429 rate limits explicitly');
 assert(battle.includes('let creatingRoom = false'), 'battle should guard duplicate room creation');
 

@@ -5,12 +5,14 @@ export type Verdict = "supported" | "unsupported" | "misleading";
 export type Side = "A" | "B"; // A = human, B = wizard
 export type Author = "player" | "wizard";
 export type RoomStatus = "lobby" | "active" | "finished";
+export type WorkflowWinner = "user" | "ai" | "tie";
 
 export interface Scores {
-  factual_accuracy: number; // 0-10
-  logic: number; // 0-10
-  evidence: number; // 0-10
-  persuasiveness: number; // 0-10
+  factual_accuracy: number; // 0-25
+  logic_quality: number; // 0-25
+  evidence_strength: number; // 0-25
+  persuasiveness: number; // 0-25
+  total: number; // 0-100
 }
 
 export interface Citation {
@@ -52,18 +54,6 @@ export interface Claim {
   citations?: Citation[];
 }
 
-/** Raw output of the pure judge-claim function. */
-export interface JudgeResult {
-  key_claim: string;
-  verdict: Verdict;
-  rationale: string;
-  points: number;
-  scores: Scores;
-  fallacies: string[];
-  citations: Citation[];
-  citation_index: number | null;
-}
-
 // --- edge function responses ---
 
 export interface CreateRoomResponse {
@@ -73,11 +63,14 @@ export interface CreateRoomResponse {
 }
 
 export interface TurnResponse {
-  claim: Claim;
-  citations: Citation[];
-  score: number;
-  citation_index: number | null;
-  room?: Room; // advance-wizard includes the (possibly finished) room
+  player_claim: Claim;
+  wizard_claim: Claim;
+  player_citations: Citation[];
+  player_score: number;
+  wizard_score: number;
+  room: Room;
+  winner: WorkflowWinner;
+  explanation: string;
 }
 
 export interface GetRoomResponse {

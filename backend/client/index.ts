@@ -14,7 +14,6 @@ import type {
   CreateRoomResponse,
   GetRoomResponse,
   HealthResponse,
-  JudgeResult,
   LeaderboardResponse,
   TurnResponse,
 } from "./types";
@@ -66,17 +65,10 @@ export function createDebateClient(baseUrl: string, opts: DebateClientOptions = 
     submitArgument: (input: { room_id: string; round_no: number; argument: string }) =>
       call<TurnResponse>("submit-argument", "POST", input),
 
-    advanceWizard: (input: { room_id: string; round_no: number; opponent_argument?: string }) =>
-      call<TurnResponse>("advance-wizard", "POST", input),
-
     getRoom: (input: { room_id: string }) =>
       call<GetRoomResponse>("get-room", "POST", input),
 
     leaderboard: () => call<LeaderboardResponse>("leaderboard", "GET"),
-
-    /** Direct access to the pure judge pipeline (rarely needed from the UI). */
-    judgeClaim: (input: { argument: string; topic?: string }) =>
-      call<JudgeResult>("judge-claim", "POST", input),
   };
 }
 

@@ -1,0 +1,11 @@
+{
+  "name": "debate-the-wizard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:frontend",
+    "test:frontend": "node tests/frontend/static/run.js",
+    "smoke:agent": "bash tests/smoke/agent-workflow.sh",
+    "smoke:backend": "bash tests/smoke/backend-flow.sh"
+  }
+}

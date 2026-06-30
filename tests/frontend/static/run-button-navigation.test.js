@@ -1,13 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const battle = fs.readFileSync(path.resolve(__dirname, '..', 'frontend', 'js', 'game', 'battle.js'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const battle = readProjectFile('frontend', 'js', 'game', 'battle.js');
 
 assert(battle.includes("act === 'run'"), 'battle should handle the RUN action');
 assert(battle.includes("waitForClick().then(() => ScreenManager.show('MAIN_MENU'))"), 'RUN should return to the main menu');

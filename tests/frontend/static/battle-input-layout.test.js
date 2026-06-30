@@ -1,16 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const index = fs.readFileSync(path.join(root, 'frontend', 'index.html'), 'utf8');
-const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'debate.css'), 'utf8');
-const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'game', 'battle.js'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const index = readProjectFile('frontend', 'index.html');
+const css = readProjectFile('frontend', 'css', 'debate.css');
+const battle = readProjectFile('frontend', 'js', 'game', 'battle.js');
 
 assert(index.includes('<input id="debate-arg-input"'), 'battle claim control should be a one-line input');
 assert(!index.includes('<textarea id="debate-arg-input"'), 'battle claim control should not be a textarea');

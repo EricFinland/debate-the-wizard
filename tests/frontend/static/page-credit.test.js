@@ -1,15 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const { assert, readProjectFile } = require('./helpers');
 
-const root = path.resolve(__dirname, '..');
-const index = fs.readFileSync(path.join(root, 'frontend', 'index.html'), 'utf8');
-const baseCss = fs.readFileSync(path.join(root, 'frontend', 'css', 'base.css'), 'utf8');
-
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error(message);
-    }
-}
+const index = readProjectFile('frontend', 'index.html');
+const baseCss = readProjectFile('frontend', 'css', 'base.css');
 
 assert(index.includes('id="page-credit"'), 'page should include a bottom-right credit element');
 assert(index.includes('Made with'), 'credit copy should include the opening phrase');

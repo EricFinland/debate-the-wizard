@@ -29,14 +29,6 @@
             });
         },
 
-        advanceWizard: function (roomId, roundNo, opponentArgument) {
-            return support.post(support.slugs.advanceWizard, {
-                room_id: roomId,
-                round_no: roundNo,
-                opponent_argument: opponentArgument
-            });
-        },
-
         getRoom: function (roomId) {
             return support.post(support.slugs.getRoom, { room_id: roomId });
         },

@@ -42,13 +42,12 @@ citations
 Indexes: `players(room_id)`, `claims(room_id)`, `claims(room_id, round_no)`, `citations(claim_id)`.
 
 ## Notes
-- **Scoring:** `claims.points` is the game score for that turn and comes from the
-  verdict (supported +10, unsupported 0, misleading −5). `players.score` is the
-  running total, bumped by `submit-argument` (side A) and `advance-wizard` (side B).
+- **Scoring:** `claims.points` stores the normalized judge total for that turn.
+  `players.score` is the running total, recomputed by `submit-argument` for both
+  side A and side B.
 - **Scorecard:** `claims.scores` + `claims.fallacies` power the per-claim scorecard
   in the UI and tiebreaks; they don't change `points`.
 - **Recap:** the `citations` table is the demo's strongest moment — the full
   source trail. `get-room` returns every claim with its citations attached.
-- **Realtime:** UI updates come from subscribing to row changes on `claims` /
-  `players` filtered by `room_id` (see backend-architecture.md), so writes here
-  are what drive the live arena.
+- **Frontend state:** the current frontend uses the `submit-argument` and `get-room`
+  HTTP responses directly; the persisted rows remain the source of truth for recaps.
