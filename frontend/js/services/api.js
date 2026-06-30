@@ -3,30 +3,26 @@
  *
  * Vanilla JS, no imports/modules. Loaded via <script> as a global IIFE (window.Api).
  *
- * Wraps the InsForge edge functions at BASE/functions/<slug> (public, no auth header).
- * Maps the pixel game's difficulty names (easy/medium/hard/impossible) to the
- * backend's (novice/adept/archmage/impossible). A stable clientId is persisted in
- * localStorage and sent as host_user_id / user_id on the relevant calls.
+ * Wraps the InsForge edge functions at the configured /functions/<slug> URLs
+ * (public, no auth header). Difficulty/backend mapping, function slugs, and
+ * storage keys live in window.AppConfig.
  *
  * Each method throws a clean Error with a short message on a non-OK response.
  */
 (function () {
     'use strict';
 
-    var BASE = 'https://atjgzcv9.us-east.insforge.app';
-    var CLIENT_ID_KEY = 'dtw_client_id';
+    var config = window.AppConfig;
+    var insforgeConfig = config && config.insforge;
+    var functionSlugs = config && config.api && config.api.functions;
+    var difficulties = config && config.difficulties;
+    var storageKeys = config && config.storageKeys;
+    if (!insforgeConfig || !insforgeConfig.baseUrl || !functionSlugs || !difficulties || !storageKeys) {
+        throw new Error('Api configuration missing: load js/config.js before js/services/api.js');
+    }
 
-    // easy/medium/hard/impossible (pixel) -> novice/adept/archmage/impossible (backend).
-    // Backend names are accepted as-is too.
-    var DIFFICULTY_MAP = {
-        easy: 'novice',
-        medium: 'adept',
-        hard: 'archmage',
-        impossible: 'impossible',
-        novice: 'novice',
-        adept: 'adept',
-        archmage: 'archmage'
-    };
+    var BASE = String(insforgeConfig.baseUrl).replace(/\/+$/, '');
+    var CLIENT_ID_KEY = storageKeys.clientId;
 
     /** Generate a UUID, falling back when crypto.randomUUID is unavailable. */
     function makeUuid() {
@@ -61,7 +57,14 @@
 
     function mapDifficulty(difficulty) {
         var key = String(difficulty || '').toLowerCase().trim();
-        return DIFFICULTY_MAP[key] || 'novice';
+        if (difficulties[key] && difficulties[key].backend) {
+            return difficulties[key].backend;
+        }
+        var backendNames = Object.keys(difficulties).map(function (name) {
+            return difficulties[name].backend;
+        });
+        if (backendNames.indexOf(key) !== -1) return key;
+        return difficulties.easy.backend;
     }
 
     /** POST JSON to a function slug; throws a clean Error on non-OK. */
@@ -106,7 +109,7 @@
          */
         createRoom: function (opts) {
             opts = opts || {};
-            return post('create-room', {
+            return post(functionSlugs.createRoom, {
                 topic: opts.topic,
                 difficulty: mapDifficulty(opts.difficulty),
                 host_user_id: getClientId()
@@ -115,7 +118,7 @@
 
         /** Submit the player's argument for a round. */
         submitArgument: function (roomId, roundNo, argument) {
-            return post('submit-argument', {
+            return post(functionSlugs.submitArgument, {
                 room_id: roomId,
                 round_no: roundNo,
                 argument: argument
@@ -124,7 +127,7 @@
 
         /** Advance the wizard (opponent) for a round, optionally reacting to the player's argument. */
         advanceWizard: function (roomId, roundNo, opponentArgument) {
-            return post('advance-wizard', {
+            return post(functionSlugs.advanceWizard, {
                 room_id: roomId,
                 round_no: roundNo,
                 opponent_argument: opponentArgument
@@ -133,12 +136,12 @@
 
         /** Fetch full room state (room, players, scores, claims, winner). */
         getRoom: function (roomId) {
-            return post('get-room', { room_id: roomId });
+            return post(functionSlugs.getRoom, { room_id: roomId });
         },
 
         /** Fetch the leaderboard. */
         leaderboard: function () {
-            return get('leaderboard');
+            return get(functionSlugs.leaderboard);
         },
 
         /**
@@ -171,7 +174,7 @@
                 var displayName = opts.name || (user && user.name) || 'PLAYER';
                 var emailVerified = !!(user && user.emailVerified);
 
-                return post('record-match', {
+                return post(functionSlugs.recordMatch, {
                     user_id: userId,
                     display_name: displayName,
                     won: opts.won,

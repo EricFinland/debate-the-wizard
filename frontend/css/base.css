@@ -99,11 +99,11 @@ body {
     background: transparent;
 }
 
-/* wrapper reserves real layout space for the scaled canvas (js/fit.js) */
+/* wrapper reserves real layout space for the scaled canvas (js/core/fit.js) */
 #gb-wrap {
     position: relative;
     flex: 0 0 auto;
-    /* width/height set by js/fit.js to 400*s / 260*s */
+    /* width/height set by js/core/fit.js to 400*s / 260*s */
 }
 
 /* the LCD screen (game viewport) — INSIDE uses the LIGHT palette */
@@ -145,7 +145,7 @@ body {
     image-rendering: pixelated;
     transform-origin: top left;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.55);
-    /* transform: scale(s) set by js/fit.js */
+    /* transform: scale(s) set by js/core/fit.js */
 }
 
 /* terminal-style title sitting on the screen's top border */

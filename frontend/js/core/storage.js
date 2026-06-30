@@ -5,7 +5,11 @@
    ======================================== */
 
 const Storage = (() => {
-    const KEY = 'wizardBattleSave';
+    const config = window.AppConfig;
+    if (!config || !config.storageKeys || !config.storageKeys.gameSave) {
+        throw new Error('Storage configuration missing: load js/config.js before js/core/storage.js');
+    }
+    const KEY = config.storageKeys.gameSave;
 
     function load() {
         try {

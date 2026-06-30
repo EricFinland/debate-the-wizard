@@ -4,22 +4,23 @@
    ======================================== */
 
 const Wizard = (() => {
-    const COLORS = ['red', 'green', 'grey', 'purple'];
+    const config = window.AppConfig;
+    if (!config || !config.wizardColors || !config.difficulties) {
+        throw new Error('Wizard configuration missing: load js/config.js before js/game/wizard.js');
+    }
 
-    // each difficulty's enemy wizard color (signature color of the trial)
-    const DIFFICULTY_COLOR = {
-        easy: 'green',
-        medium: 'red',
-        hard: 'grey',
-        impossible: 'purple'
-    };
+    const COLORS = config.wizardColors;
+    const DIFFICULTY_COLOR = {};
+    Object.keys(config.difficulties).forEach(key => {
+        DIFFICULTY_COLOR[key] = config.difficulties[key].enemyColor;
+    });
 
     function colorClass(color) {
         return 'wizard--' + color;
     }
 
     function enemyColorFor(difficulty) {
-        return DIFFICULTY_COLOR[difficulty] || 'red';
+        return DIFFICULTY_COLOR[difficulty] || COLORS[0];
     }
 
     /* Apply a color to a .wizard element (removes any previous color class). */

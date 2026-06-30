@@ -3,6 +3,11 @@
    ======================================== */
 
 const ScreenManager = (() => {
+    const config = window.AppConfig;
+    if (!config || !config.routes || !config.routes.paths) {
+        throw new Error('ScreenManager configuration missing: load js/config.js before js/core/screen-manager.js');
+    }
+
     const IDS = {
         MAIN_MENU: 'main-menu-screen',
         REGISTRATION: 'registration-screen',
@@ -11,16 +16,8 @@ const ScreenManager = (() => {
         LEADERBOARD: 'leaderboard-screen'
     };
 
-    /* border-title path shown for each screen (my terminal frame) */
-    const ROOT_PATH = '/debate-the-wizard';
-    const PATHS = {
-        MAIN_MENU: ROOT_PATH,
-        REGISTRATION: ROOT_PATH + '/registration',
-        MENU: ROOT_PATH + '/difficulty',
-        BATTLE: ROOT_PATH + '/battle',
-        LEADERBOARD: ROOT_PATH + '/leaderboard',
-        ACCOUNT: ROOT_PATH + '/account'
-    };
+    const ROOT_PATH = config.routes.root;
+    const PATHS = config.routes.paths;
 
     const listeners = {};
     let currentScreen = null;

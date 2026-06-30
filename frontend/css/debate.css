@@ -245,9 +245,9 @@
     display: flex;
     flex-direction: column;
     align-self: center;
-    /* width must match js/fit.js sidePanelWidth() clamp so the canvas is sized right */
+    /* width must match js/core/fit.js sidePanelWidth() clamp so the canvas is sized right */
     flex: 0 0 clamp(280px, 26vw, 420px);
-    /* height set by js/fit.js to match the framed game screen */
+    /* height set by js/core/fit.js to match the framed game screen */
     background: var(--debate-ink);
     border: 2px solid var(--separator);
     border-radius: 12px;

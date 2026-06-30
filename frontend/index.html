@@ -14,15 +14,19 @@
     <link rel="stylesheet" href="css/battle.css?v=20">
     <link rel="stylesheet" href="css/debate.css?v=20">
 
+    <script src="js/config.js?v=20"></script>
+
     <!-- InsForge browser client (publishable anon key, safe in the browser).
          Wrapped so a CDN/network failure can NEVER throw an uncaught error or
          block the game: guests keep playing, Auth just stays signed-out. -->
     <script type="module">
         try {
-            const { createClient } = await import('https://esm.sh/@insforge/sdk@1.4.3');
+            const config = window.AppConfig || {};
+            const insforgeConfig = config.insforge || {};
+            const { createClient } = await import(insforgeConfig.sdkUrl);
             window.__insforge = createClient({
-                baseUrl: 'https://atjgzcv9.us-east.insforge.app',
-                anonKey: 'anon_bc75b3318f511cc45a2b0c86dd7cd801cd1f46becdd93dd2fd6da1845748fa6e'
+                baseUrl: insforgeConfig.baseUrl,
+                anonKey: insforgeConfig.anonKey
             });
             window.dispatchEvent(new Event('insforge-ready'));
         } catch (e) {
@@ -36,7 +40,7 @@
 <body>
     <div id="game-container">
         <div id="gb-frame">
-            <div class="term-label">/debate-the-wizard</div>
+            <div class="term-label"></div>
             <div id="gb-wrap">
                 <div id="game-boy">
                     <div id="lcd-overlay"></div>
@@ -91,20 +95,20 @@
                     <div class="menu-title">CHOOSE YOUR DIFFICULTY</div>
                     <div class="staff-grid" id="staff-grid">
                         <div class="staff-opt" data-difficulty="easy">
-                            <img class="staff-img" src="img/staffs/staff-easy.png" alt="Easy staff">
-                            <span class="staff-label">EASY</span>
+                            <img class="staff-img" src="img/staffs/staff-easy.png" alt="Difficulty staff">
+                            <span class="staff-label"></span>
                         </div>
                         <div class="staff-opt" data-difficulty="medium">
-                            <img class="staff-img" src="img/staffs/staff-medium.png" alt="Medium staff">
-                            <span class="staff-label">MEDIUM</span>
+                            <img class="staff-img" src="img/staffs/staff-medium.png" alt="Difficulty staff">
+                            <span class="staff-label"></span>
                         </div>
                         <div class="staff-opt" data-difficulty="hard">
-                            <img class="staff-img" src="img/staffs/staff-hard.png" alt="Hard staff">
-                            <span class="staff-label">HARD</span>
+                            <img class="staff-img" src="img/staffs/staff-hard.png" alt="Difficulty staff">
+                            <span class="staff-label"></span>
                         </div>
                         <div class="staff-opt" data-difficulty="impossible">
-                            <img class="staff-img" src="img/staffs/staff-impossible.png" alt="Impossible staff">
-                            <span class="staff-label">IMPOSSIBLE</span>
+                            <img class="staff-img" src="img/staffs/staff-impossible.png" alt="Difficulty staff">
+                            <span class="staff-label"></span>
                         </div>
                     </div>
                     <div class="menu-foot" id="menu-quit">&#9664; MAIN MENU</div>
@@ -245,18 +249,18 @@
     <div id="page-credit">Made with You.com, InsForge.dev, and Love by [Eric, Tom, Jay]</div>
 
     <!-- Modules -->
-    <script src="js/keyboard-nav.js?v=20"></script>
-    <script src="js/storage.js?v=20"></script>
-    <script src="js/wizard.js?v=20"></script>
-    <script src="js/screen-manager.js?v=20"></script>
-    <script src="js/registration.js?v=20"></script>
-    <script src="js/menu.js?v=20"></script>
-    <script src="js/auth.js?v=20"></script>
-    <script src="js/api.js?v=20"></script>
-    <script src="js/leaderboard.js?v=20"></script>
-    <script src="js/battle.js?v=20"></script>
-    <script src="js/fit.js?v=20"></script>
-    <script src="js/main.js?v=20"></script>
+    <script src="js/core/keyboard-nav.js?v=20"></script>
+    <script src="js/core/storage.js?v=20"></script>
+    <script src="js/game/wizard.js?v=20"></script>
+    <script src="js/core/screen-manager.js?v=20"></script>
+    <script src="js/screens/registration.js?v=20"></script>
+    <script src="js/screens/menu.js?v=20"></script>
+    <script src="js/services/auth.js?v=20"></script>
+    <script src="js/services/api.js?v=20"></script>
+    <script src="js/screens/leaderboard.js?v=20"></script>
+    <script src="js/game/battle.js?v=20"></script>
+    <script src="js/core/fit.js?v=20"></script>
+    <script src="js/screens/main.js?v=20"></script>
 </body>
 
 </html>

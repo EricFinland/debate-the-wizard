@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const battle = fs.readFileSync(path.resolve(__dirname, '..', 'frontend', 'js', 'battle.js'), 'utf8');
+const battle = fs.readFileSync(path.resolve(__dirname, '..', 'frontend', 'js', 'game', 'battle.js'), 'utf8');
 
 function assert(condition, message) {
     if (!condition) {

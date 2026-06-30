@@ -19,6 +19,10 @@
 
     var cachedUser = null;       // last known {id,email,name,emailVerified} | null
     var cachedFetched = false;   // have we ever resolved a getUser() round-trip?
+    var authConfig = window.AppConfig && window.AppConfig.auth;
+    if (!authConfig) {
+        throw new Error('Auth configuration missing: load js/config.js before js/services/auth.js');
+    }
 
     /** Resolve once window.__insforge exists (it may already be there). */
     function ready() {
@@ -39,10 +43,10 @@
                     clearInterval(poll);
                     window.removeEventListener('insforge-ready', onReady);
                     resolve(window.__insforge);
-                } else if (tries > 100) { // ~10s; give up waiting, stay a guest
+                } else if (tries > authConfig.readyMaxPolls) {
                     clearInterval(poll);
                 }
-            }, 100);
+            }, authConfig.readyPollIntervalMs);
         });
     }
 

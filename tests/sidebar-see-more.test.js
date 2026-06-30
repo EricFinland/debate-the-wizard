@@ -3,7 +3,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'debate.css'), 'utf8');
-const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'battle.js'), 'utf8');
+const battle = fs.readFileSync(path.join(root, 'frontend', 'js', 'game', 'battle.js'), 'utf8');
 
 function assert(condition, message) {
     if (!condition) {

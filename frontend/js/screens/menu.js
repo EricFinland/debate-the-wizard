@@ -3,6 +3,11 @@
    ======================================== */
 
 const Menu = (() => {
+    const config = window.AppConfig;
+    if (!config || !config.difficulties) {
+        throw new Error('Menu configuration missing: load js/config.js before js/screens/menu.js');
+    }
+
     let nav = null;
 
     function init() {
@@ -14,6 +19,11 @@ const Menu = (() => {
                 Storage.save({ difficulty });
                 Battle.start(difficulty);
             });
+            const difficulty = config.difficulties[opt.dataset.difficulty];
+            const label = opt.querySelector('.staff-label');
+            const image = opt.querySelector('.staff-img');
+            if (difficulty && label) label.textContent = difficulty.label;
+            if (difficulty && image) image.alt = difficulty.label + ' staff';
         });
 
         document.getElementById('menu-quit').addEventListener('click', () => {

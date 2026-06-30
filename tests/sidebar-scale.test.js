@@ -4,7 +4,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const css = fs.readFileSync(path.join(root, 'frontend', 'css', 'debate.css'), 'utf8');
 const baseCss = fs.readFileSync(path.join(root, 'frontend', 'css', 'base.css'), 'utf8');
-const fit = fs.readFileSync(path.join(root, 'frontend', 'js', 'fit.js'), 'utf8');
+const fit = fs.readFileSync(path.join(root, 'frontend', 'js', 'core', 'fit.js'), 'utf8');
 
 function assert(condition, message) {
     if (!condition) {

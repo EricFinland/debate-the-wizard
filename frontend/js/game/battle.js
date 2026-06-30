@@ -7,14 +7,12 @@
    ======================================== */
 
 const Battle = (() => {
-    /* --- difficulty tuning (cosmetic color comes from Wizard.enemyColorFor) ---
-       The backend decides verdicts; dmgMult only scales how hard the wizard hits. */
-    const DIFFICULTY = {
-        easy:       { label: 'EASY',       dmgMult: 0.8, level: 3,  backend: 'novice' },
-        medium:     { label: 'MEDIUM',     dmgMult: 1.0, level: 6,  backend: 'adept' },
-        hard:       { label: 'HARD',       dmgMult: 1.2, level: 9,  backend: 'archmage' },
-        impossible: { label: 'IMPOSSIBLE', dmgMult: 1.5, level: 13, backend: 'impossible' }
-    };
+    const config = window.AppConfig;
+    if (!config || !config.difficulties) {
+        throw new Error('Battle configuration missing: load js/config.js before js/game/battle.js');
+    }
+
+    const DIFFICULTY = config.difficulties;
 
     const START_HP = 100;
     const PLAYER_LEVEL = 5;
@@ -63,9 +61,9 @@ const Battle = (() => {
     let roomId = null;
     let round = 1;
     let roundsTotal = 3;
-    let mappedDifficulty = 'adept';
+    let mappedDifficulty = DIFFICULTY.medium.backend;
     let lastCitations = [];      // citations from the most recent turn (for PACK)
-    let lastPlayerArg = '';      // fed to advance-wizard as opponent_argument
+    let lastPlayerArg = '';      // fed to the wizard turn as opponent_argument
     let argResolver = null;      // resolver while waiting on the text input
 
     // latest round result, rendered into #round-result for both sides
@@ -468,7 +466,7 @@ const Battle = (() => {
 
         player = {
             name: save.name || 'WIZARD',
-            color: save.color || 'red',
+            color: save.color || config.wizardColors[0],
             level: PLAYER_LEVEL,
             hp: START_HP,
             maxHp: START_HP
@@ -479,7 +477,7 @@ const Battle = (() => {
             level: cfg.level,
             hp: START_HP,
             maxHp: START_HP,
-            dmgMult: cfg.dmgMult
+            damageMultiplier: cfg.damageMultiplier
         };
 
         roomId = null;
@@ -765,7 +763,7 @@ const Battle = (() => {
         let dmg = 0;
         let dmgTo = 'player';
         if (verdict === 'supported') {
-            dmg = Math.round(rand(22, 30) * enemy.dmgMult);
+            dmg = Math.round(rand(22, 30) * enemy.damageMultiplier);
             els.enemyWizard.classList.add('lunge');
             const animP = Wizard.playState(els.enemyWizard, 'attack', 700);
             await delay(200);
@@ -790,7 +788,7 @@ const Battle = (() => {
             ]);
             say('THE WIZARD WAS CAUGHT! Misleading claim backfires for ' + dmg + '! ' + rationale);
         } else {
-            dmg = Math.round(rand(0, 8) * enemy.dmgMult);
+            dmg = Math.round(rand(0, 8) * enemy.damageMultiplier);
             const animP = Wizard.playState(els.enemyWizard, 'attack', 500);
             await projectile(els.enemyWizard, els.playerWizard, FIZZLE_COLOR);
             if (dmg > 0) {

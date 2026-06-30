@@ -44,7 +44,7 @@ get-room(room_id)                      -> final scores, winner, full citation tr
 
 ## JavaScript API Client
 
-The frontend uses a vanilla JavaScript client located in `frontend/js/api.js`. It wraps all edge functions and uses a static `window.Api` global. It does not use TypeScript or generated types.
+The frontend uses a vanilla JavaScript client located in `frontend/js/services/api.js`. It wraps all edge functions and uses a static `window.Api` global. It does not use TypeScript or generated types.
 
 ```js
 // Usage from the frontend:

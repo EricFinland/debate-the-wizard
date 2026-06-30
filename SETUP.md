@@ -85,7 +85,7 @@ Expected: The workflow should extract the claims, search You.com, evaluate the r
 
 ## 6. Running the Frontend
 
-The pixel-art Vanilla JS frontend does not require a build step. It communicates directly with the functions via `frontend/js/api.js`.
+The pixel-art Vanilla JS frontend does not require a build step. It communicates directly with the functions via `frontend/js/services/api.js`.
 
 To run it locally:
 ```bash
@@ -94,4 +94,4 @@ npx serve . -p 3000
 ```
 Open `http://localhost:3000` to play!
 
-Note: You may need to edit `BASE` inside `frontend/js/api.js` to point to your new project URL (`https://<PROJECT>.insforge.dev`).
+Note: You may need to edit `insforge.baseUrl` inside `frontend/js/config.js` to point to your new project URL (`https://<PROJECT>.insforge.dev`).
